@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>The Winter Master Map</title>
+    
+    <!-- Mobile App Settings -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Winter Map">
+    <link rel="apple-touch-icon" href="https://placehold.co/192x192/090d16/ffffff?text=%E2%9D%84%EF%B8%8F">
+    
+    <!-- Embedded Manifest Data URI for Single-File PWA Installation -->
+    <link rel="manifest" href="data:application/manifest+json;charset=utf-8,%7B%22name%22%3A%22The%20Winter%20Master%20Map%22%2C%22short_name%22%3A%22Winter%20Map%22%2C%22start_url%22%3A%22.%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%23090d16%22%2C%22theme_color%22%3A%22%23090d16%22%2C%22orientation%22%3A%22portrait%22%2C%22icons%22%3A%5B%7B%22src%22%3A%22https%3A%2F%2Fplacehold.co%2F192x192%2F090d16%2Fffffff%3Ftext%3D%25E2%259D%2584%25EF%25B8%258F%22%2C%22sizes%22%3A%22192x192%22%2C%22type%22%3A%22image%2Fpng%22%7D%2C%7B%22src%22%3A%22https%3A%2F%2Fplacehold.co%2F512x512%2F090d16%2Fffffff%3Ftext%3D%25E2%259D%2584%25EF%25B8%258F%22%2C%22sizes%22%3A%22512x512%22%2C%22type%22%3A%22image%2Fpng%22%7D%5D%7D">
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Leaflet CSS & JS via CDNJS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+    
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Custom scrollbar styling */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1f2937;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #4b5563;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #6b7280;
+        }
+        /* Leaflet popup customization */
+        .leaflet-popup-content-wrapper {
+            background: #1f2937 !important;
+            color: #f3f4f6 !important;
+            border-radius: 0.75rem !important;
+            border: 1px solid #374151 !important;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5) !important;
+        }
+        .leaflet-popup-tip {
+            background: #1f2937 !important;
+            border: 1px solid #374151 !important;
+        }
+        /* Bulletproof map absolute placement */
+        #map {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            width: 100%;
+            height: 100%;
+        }
+        /* Custom circular emoji pins */
+        .custom-marker {
+            background: transparent !important;
+            border: none !important;
+        }
+    </style>
+</head>
+<body class="bg-gray-950 text-gray-100 min-h-screen flex flex-col overflow-hidden select-none">
+
+    <!-- HEADER BAR -->
+    <header class="bg-gray-900 border-b border-gray-800 px-4 py-3 flex flex-col md:flex-row justify-between items-center gap-3 z-10 shrink-0 shadow-lg">
+        <div class="flex items-center gap-3">
+            <span class="text-3xl">❄️</span>
+            <div>
+                <h1 class="text-base font-bold tracking-tight text-white leading-tight">THE WINTER MASTER MAP</h1>
+                <p class="text-[10px] text-gray-400">Dec 24 – Jan 15 • Multi-Generational Expedition</p>
+            </div>
+        </div>
+        <!-- QUICK FLY-TO CITY BADGES -->
+        <div class="flex flex-wrap gap-1.5 items-center text-xs justify-center">
+            <span class="text-gray-400 mr-1 text-[10px] hidden sm:inline">Jump:</span>
+            <button onclick="zoomToCity('London')" class="px-2.5 py-1 bg-blue-950 hover:bg-blue-900 border border-blue-800 text-blue-300 font-semibold rounded-lg transition-all text-[11px]">🇬🇧 London</button>
+            <button onclick="zoomToCity('Liverpool')" class="px-2.5 py-1 bg-red-950 hover:bg-red-900 border border-red-800 text-red-300 font-semibold rounded-lg transition-all text-[11px]">⚽ Liverpool</button>
+            <button onclick="zoomToCity('Rovaniemi')" class="px-2.5 py-1 bg-emerald-950 hover:bg-emerald-900 border border-emerald-800 text-emerald-300 font-semibold rounded-lg transition-all text-[11px]">🇫🇮 Lapland</button>
+            <button onclick="zoomToCity('Stockholm')" class="px-2.5 py-1 bg-amber-950 hover:bg-amber-900 border border-amber-800 text-amber-300 font-semibold rounded-lg transition-all text-[11px]">🇸🇪 Stockholm</button>
+            <button onclick="zoomToCity('Bergen')" class="px-2.5 py-1 bg-cyan-950 hover:bg-cyan-900 border border-cyan-800 text-cyan-300 font-semibold rounded-lg transition-all text-[11px]">🇳🇴 Bergen</button>
+            <button onclick="zoomToCity('Copenhagen')" class="px-2.5 py-1 bg-rose-950 hover:bg-rose-900 border border-rose-800 text-rose-300 font-semibold rounded-lg transition-all text-[11px]">🇩🇰 Copenhagen</button>
+        </div>
+    </header>
+
+    <!-- MAIN APPLICATION CONTAINER -->
+    <div class="flex flex-1 flex-col lg:flex-row min-h-0 relative overflow-hidden">
+        
+        <!-- SIDEBAR DIRECTORY & ACCORDION -->
+        <aside class="w-full lg:w-[380px] bg-gray-900 border-r border-gray-800 flex flex-col shrink-0 min-h-0 z-10 shadow-2xl overflow-hidden">
+            <!-- Filter & Stats Panel -->
+            <div class="p-4 border-b border-gray-800 bg-gray-900/50 space-y-3 shrink-0">
+                <div class="flex justify-between items-center text-xs">
+                    <span class="text-gray-400 font-medium">Layer Toggle (Paths)</span>
+                    <div class="flex gap-2">
+                        <button onclick="toggleAllLayers(true)" class="text-indigo-400 hover:text-indigo-300 font-semibold">All</button>
+                        <span class="text-gray-700">|</span>
+                        <button onclick="toggleAllLayers(false)" class="text-gray-400 hover:text-gray-300 font-semibold">Clear</button>
+                    </div>
+                </div>
+                <!-- Categories Legend -->
+                <div class="grid grid-cols-3 gap-1 text-[10px] text-center font-semibold">
+                    <span class="py-1 px-1.5 rounded-md bg-emerald-950/50 border border-emerald-800 text-emerald-300 flex items-center justify-center gap-1">🛝 Playgrounds</span>
+                    <span class="py-1 px-1.5 rounded-md bg-orange-950/50 border border-orange-800 text-orange-300 flex items-center justify-center gap-1">🍽️ Dining</span>
+                    <span class="py-1 px-1.5 rounded-md bg-indigo-950/50 border border-indigo-800 text-indigo-300 flex items-center justify-center gap-1">🛍️ Shopping</span>
+                    <span class="py-1 px-1.5 rounded-md bg-blue-950/50 border border-blue-800 text-blue-300 flex items-center justify-center gap-1">📸 Sights</span>
+                    <span class="py-1 px-1.5 rounded-md bg-amber-950/50 border border-amber-800 text-amber-300 flex items-center justify-center gap-1">🏨 Lodging</span>
+                    <span class="py-1 px-1.5 rounded-md bg-slate-800/50 border border-slate-700 text-slate-300 flex items-center justify-center gap-1">✈️ Transits</span>
+                </div>
+            </div>
+
+            <!-- Scrollable Timeline Accordion -->
+            <div class="flex-1 overflow-y-auto p-3 space-y-3" id="timeline-accordion">
+                <!-- Days are dynamically loaded here via JS -->
+            </div>
+        </aside>
+
+        <!-- MAP CANVAS CONTAINER -->
+        <main class="flex-1 relative min-h-[300px] lg:min-h-0 bg-gray-950">
+            <!-- Leaflet Map Canvas -->
+            <div id="map"></div>
+            
+            <!-- Mobile App Installation / Guide Widget -->
+            <div class="absolute bottom-4 right-4 left-4 sm:left-auto bg-gray-900/95 border border-gray-800 p-3.5 rounded-xl z-[1000] backdrop-blur-md text-xs space-y-2 shadow-2xl max-w-sm pointer-events-auto">
+                <div class="font-bold text-white flex items-center justify-between">
+                    <span class="flex items-center gap-2">
+                        <span class="flex h-2 w-2 rounded-full bg-indigo-500 animate-pulse"></span>
+                        Mobile App Mode Enabled 📲
+                    </span>
+                    <button onclick="this.parentElement.parentElement.remove()" class="text-gray-500 hover:text-white font-bold">&times;</button>
+                </div>
+                <p class="text-gray-400 leading-normal text-[11px]">
+                    To install this map on your iPhone/Android: Upload this file to any free hosting (like Netlify or Github), open it in Safari/Chrome, tap <strong class="text-white">Share / Options</strong>, and select <strong class="text-indigo-400">Add to Home Screen</strong>!
+                </p>
+            </div>
+        </main>
+
+    </div>
+
+    <script>
+        // Geographic coordinate mapping coordinates
+        const itineraryData = {
+            "dec24": {
+                "title": "Dec 24: Flight Arrival & Prep",
+                "city": "London",
+                "center": [51.5298, -0.1720],
+                "zoom": 15,
+                "color": "#3b82f6",
+                "items": [
+                    {"time": "07:10", "title": "LHR Airport Arrival", "desc": "Terminal 3 Heathrow Flight Landing (EK007).", "coords": [51.4700, -0.4543], "icon": "✈️", "cat": "transit"},
+                    {"time": "08:30", "title": "St John's Wood Base", "desc": "Check-in at 96 St John's Wood Terrace townhouse.", "coords": [51.5303, -0.1706], "icon": "🏨", "cat": "lodging"},
+                    {"time": "12:00", "title": "Brunch at Johnny Green", "desc": "Cozy post-flight Australian-style brunch on the High Street.", "coords": [51.5298, -0.1720], "icon": "🍽️", "cat": "food"},
+                    {"time": "14:00", "title": "M&S Simply Food Run", "desc": "Prep shopping for festive meats, mince pies, and trimmings.", "coords": [51.5301, -0.1715], "icon": "🛍️", "cat": "shopping"},
+                    {"time": "18:00", "title": "Noche Buena Dinner", "desc": "Traditional, intimate family dinner gathering at the apartment.", "coords": [51.5303, -0.1706], "icon": "🍽️", "cat": "food"}
+                ]
+            },
+            "dec25": {
+                "title": "Dec 25: Walking Loop",
+                "city": "London",
+                "center": [51.5222, -0.1748],
+                "zoom": 14,
+                "color": "#ef4444",
+                "items": [
+                    {"time": "11:00", "title": "Hyde Park Entry", "desc": "Stroll down Marlborough Gate into wide open spaces.", "coords": [51.5118, -0.1748], "icon": "📸", "cat": "sight"},
+                    {"time": "11:30", "title": "The Dorchester (Beatles)", "desc": "View the iconic hotel landmark where the band once lived.", "coords": [51.5074, -0.1523], "icon": "📸", "cat": "sight"},
+                    {"time": "12:00", "title": "Little Venice Canals", "desc": "Quiet canal walkways lined with decorative glowing houseboats.", "coords": [51.5222, -0.1831], "icon": "📸", "cat": "sight"},
+                    {"time": "12:30", "title": "Abbey Road Zebra Crossing", "desc": "Stress-free, traffic-free group photo on the iconic stripes.", "coords": [51.5321, -0.1773], "icon": "📸", "cat": "sight"},
+                    {"time": "13:30", "title": "Christmas Day Roast", "desc": "Massive holiday feast utilizing Noche Buena leftovers.", "coords": [51.5303, -0.1706], "icon": "🍽️", "cat": "food"},
+                    {"time": "15:30", "title": "Regent's Park Walk", "desc": "Gentle late afternoon stroll and open play for Gus.", "coords": [51.5313, -0.1570], "icon": "📸", "cat": "sight"}
+                ]
+            },
+            "dec26": {
+                "title": "Dec 26: Sights & Winter Wonderland",
+                "city": "London",
+                "center": [51.5080, -0.1419],
+                "zoom": 14,
+                "color": "#10b981",
+                "items": [
+                    {"time": "10:00", "title": "Buckingham Palace Gates", "desc": "Admire the royal majestic palace and golden structures.", "coords": [51.5014, -0.1419], "icon": "📸", "cat": "sight"},
+                    {"time": "11:00", "title": "Trafalgar Square Giant Tree", "desc": "Gaze at the towering traditional Norwegian Spruce tree.", "coords": [51.5080, -0.1281], "icon": "📸", "cat": "sight"},
+                    {"time": "12:00", "title": "Lunch at The Game Bird", "desc": "Comforting British dining in The Stafford's cozy hotel lounge.", "coords": [51.5058, -0.1402], "icon": "🍽️", "cat": "food"},
+                    {"time": "13:30", "title": "Covent Garden Market", "desc": "Wander the glowing glass arcade under massive festive ornaments.", "coords": [51.5115, -0.1224], "icon": "📸", "cat": "sight"},
+                    {"time": "14:30", "title": "Cecil Court Old Lane", "desc": "Walk historic pedestrian Victorian bookstores lane.", "coords": [51.5101, -0.1278], "icon": "📸", "cat": "sight"},
+                    {"time": "15:30", "title": "Soho Christmas Lights", "desc": "Wander under the radiant, colorful dangles along the high street.", "coords": [51.5135, -0.1396], "icon": "📸", "cat": "sight"},
+                    {"time": "16:30", "title": "Winter Wonderland", "desc": "Hyde Park carnival rides, grand carousels, and hot sweets.", "coords": [51.5075, -0.1650], "icon": "🛝", "cat": "playground"}
+                ]
+            },
+            "dec27": {
+                "title": "Dec 27: Private Cotswolds Day Tour",
+                "city": "London",
+                "center": [51.8860, -1.7580],
+                "zoom": 10,
+                "color": "#f59e0b",
+                "items": [
+                    {"time": "08:30", "title": "Doorstep Tour Pickup", "desc": "Viator driver pickup window from St John's Wood Terrace.", "coords": [51.5303, -0.1706], "icon": "✈️", "cat": "transit"},
+                    {"time": "10:45", "title": "Burford Exploration", "desc": "Explore stunning medieval high street and shops.", "coords": [51.8080, -1.6360], "icon": "📸", "cat": "sight"},
+                    {"time": "11:45", "title": "Stow-on-the-Wold Square", "desc": "Ancient market square walk and warming Afternoon Tea.", "coords": [51.9298, -1.7248], "icon": "🍽️", "cat": "food"},
+                    {"time": "13:55", "title": "Lower Slaughter", "desc": "Tranquil stroll over tiny stone bridges and scenic wool mill.", "coords": [51.9056, -1.7641], "icon": "📸", "cat": "sight"},
+                    {"time": "14:35", "title": "Bourton-on-the-Water", "desc": "Explore the replica Venice bridges and historic toyshops.", "coords": [51.8860, -1.7580], "icon": "📸", "cat": "sight"},
+                    {"time": "15:35", "title": "Arlington Row (Bibury)", "desc": "Ultimate family photo walk by iconic weavers' cottages.", "coords": [51.7592, -1.8315], "icon": "📸", "cat": "sight"},
+                    {"time": "18:00", "title": "Return Drop-off", "desc": "Arrive safely back at your St John's Wood apartment.", "coords": [51.5303, -0.1706], "icon": "🏨", "cat": "lodging"}
+                ]
+            },
+            "dec28": {
+                "title": "Dec 28: Borough Market & Cruise",
+                "city": "London",
+                "center": [51.5055, -0.0909],
+                "zoom": 14,
+                "color": "#8b5cf6",
+                "items": [
+                    {"time": "10:00", "title": "Borough Market Feast", "desc": "Explore sensory winter cooking stalls under the iron arches.", "coords": [51.5055, -0.0909], "icon": "🍽️", "cat": "food"},
+                    {"time": "12:00", "title": "Hobbs Roast Baguettes", "desc": "Lunch stop for hot pork baguettes drenched in rich gray gravy.", "coords": [51.5055, -0.0909], "icon": "🍽️", "cat": "food"},
+                    {"time": "13:30", "title": "Thames Sightseeing Cruise", "desc": "Glass-sheltered river boat ride passing Tower Bridge, Eye & Big Ben.", "coords": [51.5065, -0.0863], "icon": "📸", "cat": "sight"},
+                    {"time": "15:30", "title": "Abbey Road Souvenirs", "desc": "Shop for exclusive Beatles memorabilia right next to studios.", "coords": [51.5319, -0.1777], "icon": "🛍️", "cat": "shopping"}
+                ]
+            },
+            "dec29": {
+                "title": "Dec 29: Stonehenge & Bath Tour",
+                "city": "London",
+                "center": [51.2814, -2.0596],
+                "zoom": 9,
+                "color": "#ec4899",
+                "items": [
+                    {"time": "08:30", "title": "Depart for Stonehenge", "desc": "Drive west to the famous UNESCO World Heritage site.", "coords": [51.1789, -1.8262], "icon": "📸", "cat": "sight"},
+                    {"time": "11:30", "title": "Travel to Bath", "desc": "Head into the beautiful Georgian town streets.", "coords": [51.3814, -2.3596], "icon": "📸", "cat": "sight"},
+                    {"time": "12:30", "title": "Lunch at Cosy Club", "desc": "Accessible dining in elegant rooms with elevator accessibility.", "coords": [51.3814, -2.3596], "icon": "🍽️", "cat": "food"},
+                    {"time": "14:00", "title": "The Roman Baths", "desc": "Tour the fully indoor-heated baths with kids' audio guides.", "coords": [51.3814, -2.3596], "icon": "📸", "cat": "sight"}
+                ]
+            },
+            "dec30": {
+                "title": "Dec 30: Towpath Walk & Notting Hill",
+                "city": "London",
+                "center": [51.5280, -0.1700],
+                "zoom": 14,
+                "color": "#14b8a6",
+                "items": [
+                    {"time": "10:00", "title": "Regent's Canal Walkway", "desc": "Stroll past Zoo enclosures to spot free wildlife and bird displays.", "coords": [51.5415, -0.1460], "icon": "📸", "cat": "sight"},
+                    {"time": "12:00", "title": "Camden Market Lunch", "desc": "Snack on street favorites like halloumi fries and mac & cheese.", "coords": [51.5415, -0.1460], "icon": "🍽️", "cat": "food"},
+                    {"time": "14:00", "title": "Notting Hill Pastel Rows", "desc": "Lancaster Road colorful townhouse photos during afternoon walk.", "coords": [51.5173, -0.2078], "icon": "📸", "cat": "sight"},
+                    {"time": "16:00", "title": "Cavendish Ave (Paul's Gate)", "desc": "Wander past Paul McCartney's historic London townhouse entry.", "coords": [51.5323, -0.1745], "icon": "📸", "cat": "sight"}
+                ]
+            },
+            "dec31": {
+                "title": "Dec 31: Euston Split & Liverpool Arrival",
+                "city": "Liverpool",
+                "center": [53.4079, -2.9774],
+                "zoom": 15,
+                "color": "#3b82f6",
+                "items": [
+                    {"time": "11:00", "title": "Euston Station Transit", "desc": "Meet by departures board following our luggage/tube split strategy.", "coords": [51.5284, -0.1338], "icon": "✈️", "cat": "transit"},
+                    {"time": "14:30", "title": "19 Lord Nelson Street", "desc": "Check-in to historic St George's Quarter base in Liverpool.", "coords": [53.4079, -2.9774], "icon": "🏨", "cat": "lodging"},
+                    {"time": "18:00", "title": "Family NYE Celebration", "desc": "Warm, relaxed NYE countdown dinner inside our home.", "coords": [53.4079, -2.9774], "icon": "🍽️", "cat": "food"}
+                ]
+            },
+            "jan1": {
+                "title": "Jan 1: Albert Dock & Beatles Story",
+                "city": "Liverpool",
+                "center": [53.4011, -2.9926],
+                "zoom": 15,
+                "color": "#6366f1",
+                "items": [
+                    {"time": "10:30", "title": "Albert Docks Walkway", "desc": "Stretch Gus's legs along the historic maritime red-brick yard.", "coords": [53.4011, -2.9926], "icon": "📸", "cat": "sight"},
+                    {"time": "12:00", "title": "Lunch at Gusto Dockside", "desc": "Scenic Italian family dining in the converted brick walls.", "coords": [53.4011, -2.9926], "icon": "🍽️", "cat": "food"},
+                    {"time": "14:00", "title": "The Beatles Story Museum", "desc": "Accessible interactive tour completely shielded from elements.", "coords": [53.3995, -2.9918], "icon": "📸", "cat": "sight"},
+                    {"time": "16:00", "title": "Beatles Cozy Taxi Ride", "desc": "Board pre-booked warm taxi tour directly from dock steps.", "coords": [53.4011, -2.9926], "icon": "📸", "cat": "sight"}
+                ]
+            },
+            "jan2": {
+                "title": "Jan 2: Dad's Birthday & Flight to Lapland",
+                "city": "Liverpool",
+                "center": [53.4035, -2.9725],
+                "zoom": 13,
+                "color": "#eab308",
+                "items": [
+                    {"time": "10:00", "title": "Oxford Street Hospital", "desc": "Stroll by the birth location of John Lennon.", "coords": [53.4038, -2.9710], "icon": "📸", "cat": "sight"},
+                    {"time": "10:30", "title": "Mount Pleasant Registry", "desc": "Stand where John and Cynthia Lennon were married.", "coords": [53.4035, -2.9725], "icon": "📸", "cat": "sight"},
+                    {"time": "11:00", "title": "Penny Lane Sign photo", "desc": "Pull over for custom family birthday group photos.", "coords": [53.3878, -2.9150], "icon": "📸", "cat": "sight"},
+                    {"time": "11:30", "title": "Strawberry Field Stop", "desc": "25-minute explore of the iconic gates and coffee break.", "coords": [53.3804, -2.8942], "icon": "📸", "cat": "sight"},
+                    {"time": "13:00", "title": "Depart Liverpool Airport", "desc": "Private multi-seater transfer to LPL departures.", "coords": [53.4079, -2.9774], "icon": "✈️", "cat": "transit"},
+                    {"time": "21:45", "title": "Lapland Resort Landing", "desc": "Arrive at RVN; transfer directly via Aito luxury shuttle.", "coords": [66.5615, 25.8350], "icon": "🏨", "cat": "lodging"}
+                ]
+            },
+            "jan3": {
+                "title": "Jan 3: Santa Claus Village",
+                "city": "Rovaniemi",
+                "center": [66.5436, 25.8480],
+                "zoom": 14,
+                "color": "#10b981",
+                "items": [
+                    {"time": "10:00", "title": "Arctic Circle Crossing", "desc": "Walk stroller-friendly snow paths in the holiday village.", "coords": [66.5436, 25.8480], "icon": "📸", "cat": "sight"},
+                    {"time": "11:30", "title": "Meet Santa Claus", "desc": "Fireside meeting in the main cabin for Gus's portrait.", "coords": [66.5436, 25.8480], "icon": "📸", "cat": "sight"},
+                    {"time": "12:30", "title": "Santa's Salmon Place", "desc": "Fresh salmon cooked over giant open wood fires in tepee.", "coords": [66.5434, 25.8475], "icon": "🍽️", "cat": "food"},
+                    {"time": "15:00", "title": "Aito Indoor Thermal Spa", "desc": "Relax in indoor heated pools and steam rooms.", "coords": [66.5615, 25.8350], "icon": "🏨", "cat": "lodging"}
+                ]
+            },
+            "jan4": {
+                "title": "Jan 4: Husky Dog Sledding Safari",
+                "city": "Rovaniemi",
+                "center": [66.5500, 25.8100],
+                "zoom": 13,
+                "color": "#f43f5e",
+                "items": [
+                    {"time": "10:30", "title": "Husky Mushing Camp", "desc": "Bundle Gus and family into sleds for 5km wilderness run.", "coords": [66.5500, 25.8100], "icon": "📸", "cat": "sight"},
+                    {"time": "13:00", "title": "Trio Forest Walk", "desc": "Quiet stroller walk on resort grounds as family departs.", "coords": [66.5615, 25.8350], "icon": "📸", "cat": "sight"}
+                ]
+            },
+            "jan5": {
+                "title": "Jan 5: High-Speed Rail & Gamla Stan",
+                "city": "Stockholm",
+                "center": [59.3248, 18.0694],
+                "zoom": 15,
+                "color": "#3b82f6",
+                "items": [
+                    {"time": "16:55", "title": "Arlanda Airport Arrival", "desc": "Take Arlanda Express (18-min level rail) to Central.", "coords": [59.3248, 18.0694], "icon": "✈️", "cat": "transit"},
+                    {"time": "17:15", "title": "Hotel Sven Vintappare", "desc": "Check-in to historic Gamla Stan boutique suite.", "coords": [59.3248, 18.0694], "icon": "🏨", "cat": "lodging"},
+                    {"time": "17:30", "title": "Coop Järntorget", "desc": "Quick stroller run for klämmisar pouches and milk.", "coords": [59.3228, 18.0725], "icon": "🛍️", "cat": "shopping"},
+                    {"time": "18:00", "title": "Den Gyldene Freden", "desc": "Elite meatballs and cream sauce in old cellar dining room.", "coords": [59.3248, 18.0694], "icon": "🍽️", "cat": "food"}
+                ]
+            },
+            "jan6": {
+                "title": "Jan 6: Södermalm Playground & Retail",
+                "city": "Stockholm",
+                "center": [59.3140, 18.0750],
+                "zoom": 14,
+                "color": "#8b5cf6",
+                "items": [
+                    {"time": "10:00", "title": "Stortorget Square Walk", "desc": "Photos against colorful Gamla Stan townhouses.", "coords": [59.3250, 18.0706], "icon": "📸", "cat": "sight"},
+                    {"time": "12:30", "title": "Bryggartäppan Playground", "desc": "Custom 19th-century toy village playground structures.", "coords": [59.3135, 18.0750], "icon": "🛝", "cat": "playground"},
+                    {"time": "14:15", "title": "Nitty Gritty Retail Loop", "desc": "Husband's design shopping loop as Gus naps.", "coords": [59.3175, 18.0630], "icon": "🛍️", "cat": "shopping"},
+                    {"time": "15:00", "title": "Our Legacy Södermalm", "desc": "Browse high-end Scandi tailoring line boutique.", "coords": [59.3140, 18.0760], "icon": "🛍️", "cat": "shopping"}
+                ]
+            },
+            "jan7": {
+                "title": "Jan 7: Vasa Museum & Design Flagships",
+                "city": "Stockholm",
+                "center": [59.3332, 18.0720],
+                "zoom": 14,
+                "color": "#ec4899",
+                "items": [
+                    {"time": "10:00", "title": "Djurgården Harbor Ferry", "desc": "8-minute scenic winter boat ride from Slussen pier.", "coords": [59.3248, 18.0694], "icon": "✈️", "cat": "transit"},
+                    {"time": "10:20", "title": "The Vasa Museum", "desc": "See grand intact warship in heated, accessible hall.", "coords": [59.3280, 18.0914], "icon": "📸", "cat": "sight"},
+                    {"time": "12:35", "title": "Östermalms Saluhall Lunch", "desc": "Fresh shrimp toast in the grand red-brick dining hall.", "coords": [59.3361, 18.0736], "icon": "🍽️", "cat": "food"},
+                    {"time": "14:00", "title": "Arket Flagship Shop", "desc": "Homeware and modern family wear design loop.", "coords": [59.3332, 18.0720], "icon": "🛍️", "cat": "shopping"},
+                    {"time": "15:00", "title": "Our Legacy Flagship", "desc": "Husband sweeps central independent fashion boutique.", "coords": [59.3355, 18.0730], "icon": "🛍️", "cat": "shopping"},
+                    {"time": "15:45", "title": "Acne Archive Outlet", "desc": "Deep discounts on archival Acne Studios runway gear.", "coords": [59.3400, 18.0400], "icon": "🛍️", "cat": "shopping"}
+                ]
+            },
+            "jan8": {
+                "title": "Jan 8: Bergen Arrival & Fika Waffles",
+                "city": "Bergen",
+                "center": [60.3980, 5.3250],
+                "zoom": 15,
+                "color": "#14b8a6",
+                "items": [
+                    {"time": "15:30", "title": "Bybanen Light Rail Transit", "desc": "Heated level ride from BGO airport directly to center.", "coords": [60.3900, 5.3250], "icon": "✈️", "cat": "transit"},
+                    {"time": "16:00", "title": "REMA 1000 Grocery run", "desc": "Stock room shelves with milk and fresh berry cartons.", "coords": [60.3918, 5.3260], "icon": "🛍️", "cat": "shopping"},
+                    {"time": "16:15", "title": "Byparken Play Stop", "desc": "Let Gus play on low swings right by lakeside lawn.", "coords": [60.3900, 5.3250], "icon": "🛝", "cat": "playground"},
+                    {"time": "16:45", "title": "Home Hotel Bryggen", "desc": "Check-in and enjoy included waffle fika buffet lounge.", "coords": [60.3980, 5.3250], "icon": "🏨", "cat": "lodging"}
+                ]
+            },
+            "jan9": {
+                "title": "Jan 9: Mount Fløyen Timber Play & Pizza",
+                "city": "Bergen",
+                "center": [60.3945, 5.3430],
+                "zoom": 14,
+                "color": "#eab308",
+                "items": [
+                    {"time": "10:00", "title": "Bryggen Wooden Facades", "desc": "Morning dockside photos by iconic leaning houses.", "coords": [60.3980, 5.3250], "icon": "📸", "cat": "sight"},
+                    {"time": "11:45", "title": "Fløyen Funicular Climb", "desc": "Glide 6 minutes up the peak to Fløyen Forest structures.", "coords": [60.3945, 5.3430], "icon": "🛝", "cat": "playground"},
+                    {"time": "13:15", "title": "Hoggorm Wood-Fired Pizza", "desc": "Excellent New York slices paired with natural wine.", "coords": [60.3860, 5.3325], "icon": "🍽️", "cat": "food"}
+                ]
+            },
+            "jan10": {
+                "title": "Jan 10: Fjord Cruise & Nordnes Park",
+                "city": "Bergen",
+                "center": [60.3985, 5.3050],
+                "zoom": 14,
+                "color": "#a855f7",
+                "items": [
+                    {"time": "10:00", "title": "Mostraumen Fjord Cruise", "desc": "Heated glass cabin ride into towering Osterfjorden.", "coords": [60.3955, 5.3255], "icon": "📸", "cat": "sight"},
+                    {"time": "13:15", "title": "Fisketorget Seafood Lunch", "desc": "Cozy indoor seafood hall bowls of fresh fish soup.", "coords": [60.3955, 5.3255], "icon": "🍽️", "cat": "food"},
+                    {"time": "14:15", "title": "Plaskis (Nordnes Park)", "desc": "Seaside swings and climbing frames as Gus naps.", "coords": [60.3985, 5.3050], "icon": "🛝", "cat": "playground"}
+                ]
+            },
+            "jan11": {
+                "title": "Jan 11: Copenhagen Base & Popl Burger",
+                "city": "Copenhagen",
+                "center": [55.6775, 12.5680],
+                "zoom": 14,
+                "color": "#3b82f6",
+                "items": [
+                    {"time": "14:30", "title": "Hotel Bella Grande", "desc": "Check-in to design hotel right off Rådhuspladsen.", "coords": [55.6775, 12.5680], "icon": "🏨", "cat": "lodging"},
+                    {"time": "15:00", "title": "Føtex Grocery Sweep", "desc": "Pick up milk and toddler travel packs right on Vesterbro.", "coords": [55.6730, 12.5530], "icon": "🛍️", "cat": "shopping"},
+                    {"time": "16:00", "title": "Skydebanehaven Playground", "desc": "Gigantic neon-painted wooden parrot play structure.", "coords": [55.6705, 12.5510], "icon": "🛝", "cat": "playground"},
+                    {"time": "17:30", "title": "Popl Noma Smash Burgers", "desc": "Elite family-friendly burgers in warm wood space.", "coords": [55.6790, 12.5930], "icon": "🍽️", "cat": "food"},
+                    {"time": "19:30", "title": "Drinks at Apollo Bar", "desc": "Quiet nightcap drink in the creative palace courtyard.", "coords": [55.6800, 12.5875], "icon": "🍽️", "cat": "food"}
+                ]
+            },
+            "jan12": {
+                "title": "Jan 12: Monstrum Dragons & Audo Showroom",
+                "city": "Copenhagen",
+                "center": [55.6930, 12.6150],
+                "zoom": 12,
+                "color": "#10b981",
+                "items": [
+                    {"time": "10:00", "title": "The King's Garden Dragon", "desc": "Award-winning Monstrum castle-themed structures.", "coords": [55.6850, 12.5780], "icon": "🛝", "cat": "playground"},
+                    {"time": "11:30", "title": "Hart Bageri Tebirkes", "desc": "Secure flaky morning bakes and Prolog coffees.", "coords": [55.6845, 12.5800], "icon": "🍽️", "cat": "food"},
+                    {"time": "12:00", "title": "Lunch at Lille Bakery", "desc": "Sausage rolls and flatbread bakes out in shipyards.", "coords": [55.6930, 12.6150], "icon": "🍽️", "cat": "food"},
+                    {"time": "13:45", "title": "Audo House Showroom", "desc": "Homeware interior designs and coffees in the quiet docks.", "coords": [55.7075, 12.5920], "icon": "🛍️", "cat": "shopping"}
+                ]
+            },
+            "jan13": {
+                "title": "Jan 13: Core Retail & Vintage Safari",
+                "city": "Copenhagen",
+                "center": [55.6780, 12.5760],
+                "zoom": 15,
+                "color": "#f59e0b",
+                "items": [
+                    {"time": "09:30", "title": "Breakfast at Sonny", "desc": "Premium specialty filters sourcing beans from La Cabra.", "coords": [55.6780, 12.5760], "icon": "🍽️", "cat": "food"},
+                    {"time": "10:15", "title": "HAY House Flagship", "desc": "Browse gorgeous homeware showrooms on the square.", "coords": [55.6790, 12.5780], "icon": "🛍️", "cat": "shopping"},
+                    {"time": "11:00", "title": "Norse Store & Another Aspect", "desc": "Husband sweeps central menswear design spots.", "coords": [55.6810, 12.5800], "icon": "🛍️", "cat": "shopping"},
+                    {"time": "11:30", "title": "Nikolaj Plads Playground", "desc": "Balance logs and abstract spires behind the boutiques.", "coords": [55.6785, 12.5815], "icon": "🛝", "cat": "playground"},
+                    {"time": "12:30", "title": "Smørrebrød at Gammeltorv", "desc": "Classic pickled herring lunch in historic wood room.", "coords": [55.6782, 12.5725], "icon": "🍽️", "cat": "food"},
+                    {"time": "14:00", "title": "Mfpen & OSV Secondhand", "desc": "Archive menswear lines and vintage pieces on Studiestræde.", "coords": [55.6795, 12.5700], "icon": "🛍️", "cat": "shopping"},
+                    {"time": "15:00", "title": "Darcy's Coffee break", "desc": "Elite Wendelboe espressos on the block as Gus naps.", "coords": [55.6870, 12.5570], "icon": "🍽️", "cat": "food"},
+                    {"time": "17:30", "title": "Pasta Feast at Mangia", "desc": "Rich Italian egg noodles and savory anchovy toast.", "coords": [55.6735, 12.5550], "icon": "🍽️", "cat": "food"}
+                ]
+            },
+            "jan14": {
+                "title": "Jan 14: Cardamom Buns & Natural Wines",
+                "city": "Copenhagen",
+                "center": [55.6840, 12.5650],
+                "zoom": 14,
+                "color": "#a855f7",
+                "items": [
+                    {"time": "09:30", "title": "Juno the Bakery Buns", "desc": "Stand in line for world-famous cardamom buns.", "coords": [55.7010, 12.5760], "icon": "🍽️", "cat": "food"},
+                    {"time": "12:30", "title": "Nr. 30 (Nansensgade)", "desc": "Highly rated seasonal modern plates and organic wines.", "coords": [55.6840, 12.5650], "icon": "🍽️", "cat": "food"},
+                    {"time": "17:30", "title": "Hija de Sánchez Tacos", "desc": "Authentic street tacos and fresh ceviche basted with hot salsas.", "coords": [55.6730, 12.5530], "icon": "🍽️", "cat": "food"}
+                ]
+            }
+        };
+
+        let map;
+        let dayLayers = {};
+        const activeLayers = new Set();
+
+        const categoryStyles = {
+            "playground": "bg-emerald-950 border-emerald-500 text-emerald-300",
+            "food": "bg-orange-950 border-orange-500 text-orange-300",
+            "shopping": "bg-indigo-950 border-indigo-500 text-indigo-300",
+            "sight": "bg-blue-950 border-blue-500 text-blue-300",
+            "lodging": "bg-amber-950 border-amber-500 text-amber-300",
+            "transit": "bg-slate-900 border-slate-600 text-slate-300"
+        };
+
+        const cityCoords = {
+            "London": [51.5074, -0.1278],
+            "Liverpool": [53.4080, -2.9780],
+            "Rovaniemi": [66.5039, 25.7294],
+            "Stockholm": [59.3293, 18.0686],
+            "Bergen": [60.3913, 5.3221],
+            "Copenhagen": [55.6761, 12.5683]
+        };
+
+        window.onload = function() {
+            // Instantiate Map using CartoDB Dark Matter tile layer
+            map = L.map('map', {
+                center: [55.0, 5.0],
+                zoom: 4,
+                zoomControl: false
+            });
+
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+                subdomains: 'abcd',
+                maxZoom: 20
+            }).addTo(map);
+
+            L.control.zoom({ position: 'bottomleft' }).addTo(map);
+
+            buildAccordion();
+            loadAllLayers();
+            
+            // Enable London Day 1 as default
+            toggleDayLayer('dec24');
+
+            if ('serviceWorker' in navigator) {
+                const swCode = `
+                    self.addEventListener('install', e => self.skipWaiting());
+                    self.addEventListener('activate', e => e.waitUntil(clients.claim()));
+                    self.addEventListener('fetch', e => e.respondWith(fetch(e.request).catch(() => new Response('Offline Mode'))));
+                `;
+                const blob = new Blob([swCode], { type: 'application/javascript' });
+                navigator.serviceWorker.register(URL.createObjectURL(blob)).catch(err => console.log('SW setup skipped'));
+            }
+        };
+
+        function buildAccordion() {
+            const container = document.getElementById('timeline-accordion');
+            container.innerHTML = "";
+
+            Object.entries(itineraryData).forEach(([key, day]) => {
+                const dayCard = document.createElement('div');
+                dayCard.className = "bg-gray-800/40 border border-gray-800 rounded-xl overflow-hidden shadow-md hover:border-gray-700 transition-all";
+                
+                dayCard.innerHTML = `
+                    <div class="p-3 bg-gray-800/80 flex items-center justify-between cursor-pointer" onclick="toggleAccordionContent('${key}')">
+                        <div class="flex items-center gap-2">
+                            <input type="checkbox" id="chk-${key}" class="rounded border-gray-700 text-indigo-600 focus:ring-indigo-500 bg-gray-900 h-4 w-4" onchange="event.stopPropagation(); handleCheckboxChange('${key}', this.checked)" onclick="event.stopPropagation();">
+                            <label for="chk-${key}" onclick="event.stopPropagation();" class="text-xs font-bold text-white cursor-pointer select-none">${day.title}</label>
+                        </div>
+                        <span class="text-[10px] text-gray-400 font-semibold uppercase tracking-wider">${day.city}</span>
+                    </div>
+                    <div id="body-${key}" class="hidden p-3 border-t border-gray-800/50 space-y-2.5 bg-gray-900/30">
+                        <div class="flex gap-2">
+                            <button onclick="zoomToDay('${key}')" class="text-[10px] w-full py-1 bg-indigo-950/50 hover:bg-indigo-900/50 border border-indigo-800 text-indigo-300 rounded font-semibold transition-all">Fit Bounds</button>
+                        </div>
+                        <div class="space-y-2 divide-y divide-gray-800/40" id="list-${key}"></div>
+                    </div>
+                `;
+
+                container.appendChild(dayCard);
+
+                const listContainer = document.getElementById(`list-${key}`);
+                day.items.forEach((item, idx) => {
+                    const itemEl = document.createElement('div');
+                    itemEl.className = "pt-2 first:pt-0 flex gap-2.5 items-start hover:bg-gray-800/30 p-1.5 rounded transition-all cursor-pointer";
+                    itemEl.onclick = () => focusMarker(key, idx);
+
+                    itemEl.innerHTML = `
+                        <span class="text-[10px] bg-gray-800 px-1.5 py-0.5 rounded font-mono text-gray-300 tracking-tight">${item.time}</span>
+                        <div class="flex-1">
+                            <h4 class="text-xs font-bold text-gray-200 flex items-center gap-1">
+                                <span>${item.icon}</span>
+                                ${item.title}
+                            </h4>
+                            <p class="text-[11px] text-gray-400 leading-normal mt-0.5">${item.desc}</p>
+                        </div>
+                    `;
+                    listContainer.appendChild(itemEl);
+                });
+            });
+        }
+
+        function toggleAccordionContent(key) {
+            const body = document.getElementById(`body-${key}`);
+            const isHidden = body.classList.contains('hidden');
+            if (isHidden) {
+                body.classList.remove('hidden');
+            } else {
+                body.classList.add('hidden');
+            }
+        }
+
+        function loadAllLayers() {
+            Object.entries(itineraryData).forEach(([key, day]) => {
+                const markers = [];
+                const latlngs = [];
+
+                day.items.forEach((item, idx) => {
+                    latlngs.push(item.coords);
+
+                    const styleClass = categoryStyles[item.cat] || "bg-slate-900 text-slate-300";
+                    const customIcon = L.divIcon({
+                        className: 'custom-marker',
+                        html: `<div class="flex items-center justify-center w-8 h-8 rounded-full border-2 shadow-lg font-semibold text-sm ${styleClass}">${item.icon}</div>`,
+                        iconSize: [32, 32],
+                        iconAnchor: [16, 16]
+                    });
+
+                    const popupHTML = `
+                        <div class="text-xs space-y-2">
+                            <div class="flex items-center gap-1.5 border-b border-gray-800 pb-1.5">
+                                <span class="text-base">${item.icon}</span>
+                                <div>
+                                    <h4 class="font-bold text-white text-sm tracking-tight leading-none">${item.title}</h4>
+                                    <span class="text-[9px] text-indigo-400 font-mono">${day.title} • ${item.time}</span>
+                                </div>
+                            </div>
+                            <p class="text-gray-300 text-[11px] leading-relaxed">${item.desc}</p>
+                        </div>
+                    `;
+
+                    const marker = L.marker(item.coords, { icon: customIcon })
+                        .bindPopup(popupHTML);
+                    
+                    markers.push(marker);
+                });
+
+                const routePolyline = L.polyline(latlngs, {
+                    color: day.color,
+                    weight: 3,
+                    opacity: 0.6,
+                    dashArray: '6, 8'
+                });
+
+                dayLayers[key] = L.layerGroup([...markers, routePolyline]);
+            });
+        }
+
+        function handleCheckboxChange(key, isChecked) {
+            if (isChecked) {
+                dayLayers[key].addTo(map);
+                activeLayers.add(key);
+                document.getElementById(`body-${key}`).classList.remove('hidden');
+            } else {
+                map.removeLayer(dayLayers[key]);
+                activeLayers.delete(key);
+            }
+        }
+
+        function toggleDayLayer(key) {
+            const chk = document.getElementById(`chk-${key}`);
+            if (chk) {
+                chk.checked = true;
+                handleCheckboxChange(key, true);
+                zoomToDay(key);
+            }
+        }
+
+        function toggleAllLayers(enable) {
+            Object.keys(itineraryData).forEach(key => {
+                const chk = document.getElementById(`chk-${key}`);
+                if (chk) {
+                    chk.checked = enable;
+                    handleCheckboxChange(key, enable);
+                }
+            });
+            if (enable) {
+                map.setView([58.0, 10.0], 4);
+            }
+        }
+
+        function zoomToDay(key) {
+            const day = itineraryData[key];
+            const chk = document.getElementById(`chk-${key}`);
+            if (chk && !chk.checked) {
+                chk.checked = true;
+                handleCheckboxChange(key, true);
+            }
+            map.setView(day.center, day.zoom);
+        }
+
+        function zoomToCity(cityName) {
+            const coords = cityCoords[cityName];
+            if (coords) {
+                map.setView(coords, 13);
+            }
+        }
+
+        function focusMarker(key, idx) {
+            const chk = document.getElementById(`chk-${key}`);
+            if (chk && !chk.checked) {
+                chk.checked = true;
+                handleCheckboxChange(key, true);
+            }
+            const item = itineraryData[key].items[idx];
+            map.setView(item.coords, 16);
+            
+            dayLayers[key].eachLayer(layer => {
+                if (layer instanceof L.Marker && layer.getLatLng().lat === item.coords[0] && layer.getLatLng().lng === item.coords[1]) {
+                    layer.openPopup();
+                }
+            });
+        }
+    </script>
+</body>
+</html>
