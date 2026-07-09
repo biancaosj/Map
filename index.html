@@ -1,677 +1,737 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>The Winter Master Map</title>
-    
-    <!-- Mobile App Settings -->
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Winter Map">
-    <link rel="apple-touch-icon" href="https://placehold.co/192x192/090d16/ffffff?text=%E2%9D%84%EF%B8%8F">
-    
-    <!-- Embedded Manifest Data URI for Single-File PWA Installation -->
-    <link rel="manifest" href="data:application/manifest+json;charset=utf-8,%7B%22name%22%3A%22The%20Winter%20Master%20Map%22%2C%22short_name%22%3A%22Winter%20Map%22%2C%22start_url%22%3A%22.%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%23090d16%22%2C%22theme_color%22%3A%22%23090d16%22%2C%22orientation%22%3A%22portrait%22%2C%22icons%22%3A%5B%7B%22src%22%3A%22https%3A%2F%2Fplacehold.co%2F192x192%2F090d16%2Fffffff%3Ftext%3D%25E2%259D%2584%25EF%25B8%258F%22%2C%22sizes%22%3A%22192x192%22%2C%22type%22%3A%22image%2Fpng%22%7D%2C%7B%22src%22%3A%22https%3A%2F%2Fplacehold.co%2F512x512%2F090d16%2Fffffff%3Ftext%3D%25E2%259D%2584%25EF%25B8%258F%22%2C%22sizes%22%3A%22512x512%22%2C%22type%22%3A%22image%2Fpng%22%7D%5D%7D">
+import React, { useState, useEffect, useRef } from 'react';
+import { 
+  Undo2, 
+  Settings, 
+  Plus, 
+  Award, 
+  Trash2, 
+  Volume2, 
+  VolumeX, 
+  Lock, 
+  Unlock, 
+  Sparkles, 
+  RotateCcw, 
+  Check, 
+  Calendar,
+  X,
+  Flame,
+  ChevronRight
+} from 'lucide-react';
 
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Google Fonts Inter -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <!-- Leaflet CSS & JS via CDNJS -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-    
-    <style>
-        body {
-            font-family: 'Inter', sans-serif;
-        }
-        /* Custom scrollbar styling */
-        ::-webkit-scrollbar {
-            width: 6px;
-        }
-        ::-webkit-scrollbar-track {
-            background: #1f2937;
-        }
-        ::-webkit-scrollbar-thumb {
-            background: #4b5563;
-            border-radius: 3px;
-        }
-        ::-webkit-scrollbar-thumb:hover {
-            background: #6b7280;
-        }
-        /* Leaflet popup customization */
-        .leaflet-popup-content-wrapper {
-            background: #1f2937 !important;
-            color: #f3f4f6 !important;
-            border-radius: 0.75rem !important;
-            border: 1px solid #374151 !important;
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5) !important;
-        }
-        .leaflet-popup-tip {
-            background: #1f2937 !important;
-            border: 1px solid #374151 !important;
-        }
-        /* Bulletproof map absolute placement */
-        #map {
-            position: absolute;
-            top: 0;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            width: 100%;
-            height: 100%;
-        }
-        /* Custom circular emoji pins */
-        .custom-marker {
-            background: transparent !important;
-            border: none !important;
-        }
-    </style>
-</head>
-<body class="bg-gray-950 text-gray-100 min-h-screen flex flex-col overflow-hidden select-none">
+export default function App() {
+  // --- STATE ---
+  const [stars, setStars] = useState(() => {
+    const saved = localStorage.getItem('gus_potty_stars');
+    return saved ? parseInt(saved, 10) : 0;
+  });
+  
+  const [reward, setReward] = useState(() => {
+    const saved = localStorage.getItem('gus_potty_reward');
+    return saved || '🎁 A Special Surprise';
+  });
 
-    <!-- HEADER BAR -->
-    <header class="bg-gray-900 border-b border-gray-800 px-4 py-3 flex flex-col md:flex-row justify-between items-center gap-3 z-10 shrink-0 shadow-lg">
-        <div class="flex items-center gap-3">
-            <span class="text-3xl">❄️</span>
-            <div>
-                <h1 class="text-base font-bold tracking-tight text-white leading-tight">THE WINTER MASTER MAP</h1>
-                <p class="text-[10px] text-gray-400">Dec 24 – Jan 15 • Multi-Generational Expedition</p>
-            </div>
-        </div>
-        <!-- QUICK FLY-TO CITY BADGES -->
-        <div class="flex flex-wrap gap-1.5 items-center text-xs justify-center">
-            <span class="text-gray-400 mr-1 text-[10px] hidden sm:inline">Jump:</span>
-            <button onclick="zoomToCity('London')" class="px-2.5 py-1 bg-blue-950 hover:bg-blue-900 border border-blue-800 text-blue-300 font-semibold rounded-lg transition-all text-[11px]">🇬🇧 London</button>
-            <button onclick="zoomToCity('Liverpool')" class="px-2.5 py-1 bg-red-950 hover:bg-red-900 border border-red-800 text-red-300 font-semibold rounded-lg transition-all text-[11px]">⚽ Liverpool</button>
-            <button onclick="zoomToCity('Rovaniemi')" class="px-2.5 py-1 bg-emerald-950 hover:bg-emerald-900 border border-emerald-800 text-emerald-300 font-semibold rounded-lg transition-all text-[11px]">🇫🇮 Lapland</button>
-            <button onclick="zoomToCity('Stockholm')" class="px-2.5 py-1 bg-amber-950 hover:bg-amber-900 border border-amber-800 text-amber-300 font-semibold rounded-lg transition-all text-[11px]">🇸🇪 Stockholm</button>
-            <button onclick="zoomToCity('Bergen')" class="px-2.5 py-1 bg-cyan-950 hover:bg-cyan-900 border border-cyan-800 text-cyan-300 font-semibold rounded-lg transition-all text-[11px]">🇳🇴 Bergen</button>
-            <button onclick="zoomToCity('Copenhagen')" class="px-2.5 py-1 bg-rose-950 hover:bg-rose-900 border border-rose-800 text-rose-300 font-semibold rounded-lg transition-all text-[11px]">🇩🇰 Copenhagen</button>
-        </div>
-    </header>
+  const [history, setHistory] = useState(() => {
+    const saved = localStorage.getItem('gus_potty_history');
+    return saved ? JSON.parse(saved) : [
+      { id: 'init', timestamp: new Date().toISOString(), type: 'info', message: 'Ready to go potty with Gus!' }
+    ];
+  });
 
-    <!-- MAIN APPLICATION CONTAINER -->
-    <div class="flex flex-1 flex-col lg:flex-row min-h-0 relative overflow-hidden">
+  const [soundEnabled, setSoundEnabled] = useState(true);
+  const [parentPanelOpen, setParentPanelOpen] = useState(false);
+  const [mascotExpression, setMascotExpression] = useState('neutral'); // neutral, happy, wink, surprised
+  const [streak, setStreak] = useState(() => {
+    const saved = localStorage.getItem('gus_potty_streak');
+    return saved ? parseInt(saved, 10) : 0;
+  });
+
+  // Parent Gate Security Quiz
+  const [gateNum1, setGateNum1] = useState(0);
+  const [gateNum2, setGateNum2] = useState(0);
+  const [gateAnswer, setGateAnswer] = useState('');
+  const [gatePassed, setGatePassed] = useState(false);
+  const [gateError, setGateError] = useState(false);
+
+  // Canvas Reference for Custom Confetti Animation
+  const canvasRef = useRef(null);
+  const animationFrameRef = useRef(null);
+  const particlesRef = useRef([]);
+
+  // --- AUDIO SYNTHESIS ENGINE ---
+  const playSynthesizedTone = (frequencies, type = 'sine', duration = 0.1, delayBetween = 0) => {
+    if (!soundEnabled) return;
+    try {
+      const AudioContext = window.AudioContext || window.webkitAudioContext;
+      if (!AudioContext) return;
+      const ctx = new AudioContext();
+      
+      frequencies.forEach((freq, index) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
         
-        <!-- SIDEBAR DIRECTORY & ACCORDION -->
-        <aside class="w-full lg:w-[380px] bg-gray-900 border-r border-gray-800 flex flex-col shrink-0 min-h-0 z-10 shadow-2xl overflow-hidden">
-            <!-- Filter & Stats Panel -->
-            <div class="p-4 border-b border-gray-800 bg-gray-900/50 space-y-3 shrink-0">
-                <div class="flex justify-between items-center text-xs">
-                    <span class="text-gray-400 font-medium">Layer Toggle (Paths)</span>
-                    <div class="flex gap-2">
-                        <button onclick="toggleAllLayers(true)" class="text-indigo-400 hover:text-indigo-300 font-semibold">All</button>
-                        <span class="text-gray-700">|</span>
-                        <button onclick="toggleAllLayers(false)" class="text-gray-400 hover:text-gray-300 font-semibold">Clear</button>
-                    </div>
-                </div>
-                <!-- Categories Legend -->
-                <div class="grid grid-cols-3 gap-1 text-[10px] text-center font-semibold">
-                    <span class="py-1 px-1.5 rounded-md bg-emerald-950/50 border border-emerald-800 text-emerald-300 flex items-center justify-center gap-1">🛝 Playgrounds</span>
-                    <span class="py-1 px-1.5 rounded-md bg-orange-950/50 border border-orange-800 text-orange-300 flex items-center justify-center gap-1">🍽️ Dining</span>
-                    <span class="py-1 px-1.5 rounded-md bg-indigo-950/50 border border-indigo-800 text-indigo-300 flex items-center justify-center gap-1">🛍️ Shopping</span>
-                    <span class="py-1 px-1.5 rounded-md bg-blue-950/50 border border-blue-800 text-blue-300 flex items-center justify-center gap-1">📸 Sights</span>
-                    <span class="py-1 px-1.5 rounded-md bg-amber-950/50 border border-amber-800 text-amber-300 flex items-center justify-center gap-1">🏨 Lodging</span>
-                    <span class="py-1 px-1.5 rounded-md bg-slate-800/50 border border-slate-700 text-slate-300 flex items-center justify-center gap-1">✈️ Transits</span>
-                </div>
-            </div>
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, ctx.currentTime + index * delayBetween);
+        
+        gain.gain.setValueAtTime(0.15, ctx.currentTime + index * delayBetween);
+        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + index * delayBetween + duration);
+        
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        
+        osc.start(ctx.currentTime + index * delayBetween);
+        osc.stop(ctx.currentTime + index * delayBetween + duration);
+      });
+    } catch (e) {
+      console.warn("Audio Context blocked or unsupported:", e);
+    }
+  };
 
-            <!-- Scrollable Timeline Accordion -->
-            <div class="flex-1 overflow-y-auto p-3 space-y-3" id="timeline-accordion">
-                <!-- Days are dynamically loaded here via JS -->
-            </div>
-        </aside>
+  const playSuccessTone = () => {
+    // Joyful ascending arpeggio
+    playSynthesizedTone([261.63, 329.63, 392.00, 523.25], 'triangle', 0.25, 0.08);
+  };
 
-        <!-- MAP CANVAS CONTAINER -->
-        <main class="flex-1 relative min-h-[300px] lg:min-h-0 bg-gray-950">
-            <!-- Leaflet Map Canvas -->
-            <div id="map"></div>
+  const playUndoTone = () => {
+    // Soft descending warning tone
+    playSynthesizedTone([440.00, 349.23, 293.66], 'sawtooth', 0.18, 0.06);
+  };
+
+  const playVictoryFanfare = () => {
+    // Grand celebration brassy sound
+    playSynthesizedTone([261.63, 261.63, 261.63, 329.63, 392.00, 523.25, 659.25], 'square', 0.4, 0.08);
+  };
+
+  const playPopTone = () => {
+    // Bubble pop tactile sound
+    playSynthesizedTone([600, 850], 'sine', 0.08, 0.02);
+  };
+
+  // --- PERSISTENCE ---
+  useEffect(() => {
+    localStorage.setItem('gus_potty_stars', stars);
+  }, [stars]);
+
+  useEffect(() => {
+    localStorage.setItem('gus_potty_reward', reward);
+  }, [reward]);
+
+  useEffect(() => {
+    localStorage.setItem('gus_potty_history', JSON.stringify(history));
+  }, [history]);
+
+  useEffect(() => {
+    localStorage.setItem('gus_potty_streak', streak);
+  }, [streak]);
+
+  // --- PARENT GATE LOGIC ---
+  const generateNewGateQuiz = () => {
+    const num1 = Math.floor(Math.random() * 8) + 2; // 2-9
+    const num2 = Math.floor(Math.random() * 8) + 2; // 2-9
+    setGateNum1(num1);
+    setGateNum2(num2);
+    setGateAnswer('');
+    setGateError(false);
+  };
+
+  const handleVerifyParent = () => {
+    const correct = gateNum1 * gateNum2;
+    if (parseInt(gateAnswer, 10) === correct) {
+      setGatePassed(true);
+      setGateError(false);
+    } else {
+      setGateError(true);
+      playSynthesizedTone([150], 'sawtooth', 0.3);
+    }
+  };
+
+  const openSettings = () => {
+    generateNewGateQuiz();
+    setGatePassed(false);
+    setParentPanelOpen(true);
+  };
+
+  // --- ACTIONS ---
+  const addStar = () => {
+    if (stars >= 10) return;
+    
+    const newCount = stars + 1;
+    setStars(newCount);
+    setStreak(prev => prev + 1);
+    
+    // Play celebratory tone
+    if (newCount === 10) {
+      playVictoryFanfare();
+      triggerConfettiBurst(50);
+      setMascotExpression('excited');
+    } else {
+      playSuccessTone();
+      triggerConfettiBurst(15);
+      setMascotExpression(newCount % 2 === 0 ? 'happy' : 'wink');
+    }
+
+    // Reset expression after delay
+    setTimeout(() => setMascotExpression('neutral'), 2000);
+
+    // Save history
+    const logItem = {
+      id: Date.now().toString(),
+      timestamp: new Date().toISOString(),
+      type: 'add',
+      message: `Star ${newCount} added successfully! 🌟`
+    };
+    setHistory(prev => [logItem, ...prev]);
+  };
+
+  const undoLastStar = () => {
+    if (stars <= 0) return;
+    
+    const previousCount = stars;
+    setStars(stars - 1);
+    setStreak(prev => Math.max(0, prev - 1));
+    playUndoTone();
+    setMascotExpression('surprised');
+    setTimeout(() => setMascotExpression('neutral'), 1500);
+
+    const logItem = {
+      id: Date.now().toString(),
+      timestamp: new Date().toISOString(),
+      type: 'undo',
+      message: `Undone star ${previousCount}.`
+    };
+    setHistory(prev => [logItem, ...prev]);
+  };
+
+  const resetStars = () => {
+    setStars(0);
+    playPopTone();
+    const logItem = {
+      id: Date.now().toString(),
+      timestamp: new Date().toISOString(),
+      type: 'reset',
+      message: 'Stars reset to 0.'
+    };
+    setHistory(prev => [logItem, ...prev]);
+  };
+
+  const clearHistory = () => {
+    setHistory([{ id: 'init', timestamp: new Date().toISOString(), type: 'info', message: 'History cleared!' }]);
+    playPopTone();
+  };
+
+  // --- CONFETTI ANIMATION ENGINE ---
+  class ConfettiParticle {
+    constructor(w, h, count) {
+      this.x = Math.random() * w;
+      this.y = Math.random() * -h - 20;
+      this.size = Math.random() * 8 + 6;
+      this.color = ['#FF5743', '#FDB022', '#41B07D', '#6366F1', '#EC4899'][Math.floor(Math.random() * 5)];
+      this.speedX = Math.random() * 4 - 2;
+      this.speedY = Math.random() * 5 + 3;
+      this.rotation = Math.random() * 360;
+      this.rotationSpeed = Math.random() * 4 - 2;
+    }
+
+    update(w, h) {
+      this.x += this.speedX;
+      this.y += this.speedY;
+      this.rotation += this.rotationSpeed;
+    }
+
+    draw(ctx) {
+      ctx.save();
+      ctx.translate(this.x, this.y);
+      ctx.rotate((this.rotation * Math.PI) / 180);
+      ctx.fillStyle = this.color;
+      ctx.fillRect(-this.size / 2, -this.size / 2, this.size, this.size);
+      ctx.restore();
+    }
+  }
+
+  const triggerConfettiBurst = (count) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const w = canvas.width;
+    const h = canvas.height;
+    
+    for (let i = 0; i < count; i++) {
+      particlesRef.current.push(new ConfettiParticle(w, h, count));
+    }
+    
+    if (particlesRef.current.length > 0 && !animationFrameRef.current) {
+      animateConfetti();
+    }
+  };
+
+  const animateConfetti = () => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    const w = canvas.width;
+    const h = canvas.height;
+
+    ctx.clearRect(0, 0, w, h);
+
+    particlesRef.current.forEach((p, index) => {
+      p.update(w, h);
+      p.draw(ctx);
+      
+      // Remove off-screen particles
+      if (p.y > h) {
+        particlesRef.current.splice(index, 1);
+      }
+    });
+
+    if (particlesRef.current.length > 0) {
+      animationFrameRef.current = requestAnimationFrame(animateConfetti);
+    } else {
+      animationFrameRef.current = null;
+    }
+  };
+
+  // Adjust canvas bounds on load/resize
+  useEffect(() => {
+    const handleResize = () => {
+      if (canvasRef.current) {
+        canvasRef.current.width = window.innerWidth;
+        canvasRef.current.height = window.innerHeight;
+      }
+    };
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
+    };
+  }, []);
+
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-[#FDF6E2] to-[#FFF9F0] text-[#4A3E3D] font-sans antialiased relative overflow-x-hidden flex flex-col justify-between selection:bg-[#FDB022]/30 pb-6">
+      
+      {/* High-performance Interactive Canvas Confetti */}
+      <canvas 
+        ref={canvasRef} 
+        className="pointer-events-none absolute inset-0 z-50 w-full h-full"
+      />
+
+      {/* --- TOP BAR HEADER --- */}
+      <header className="px-6 py-4 flex items-center justify-between max-w-md mx-auto w-full">
+        <div className="flex items-center gap-3">
+          {/* Custom Warm Badge */}
+          <div className="w-12 h-12 rounded-2xl bg-[#FDB022] flex items-center justify-center shadow-lg border-2 border-white transform hover:scale-105 transition-all duration-300">
+            <span className="text-xl">🦒</span>
+          </div>
+          <div>
+            <h1 className="font-black text-2xl tracking-tight text-[#4A3E3D] flex items-center gap-1">
+              Gus's <span className="text-[#FF5743]">Potty Tracker</span>
+            </h1>
+            <p className="text-xs text-[#8A7968] font-bold uppercase tracking-wider flex items-center gap-1">
+              <Flame className="w-3 h-3 text-[#FF5743] fill-[#FF5743] inline" /> {streak} Potty Streak
+            </p>
+          </div>
+        </div>
+
+        <div className="flex gap-2">
+          {/* Sound Controls */}
+          <button 
+            onClick={() => { setSoundEnabled(!soundEnabled); playPopTone(); }}
+            className={`w-10 h-10 rounded-xl flex items-center justify-center border-b-4 transition-all ${
+              soundEnabled 
+                ? 'bg-[#41B07D] text-white border-[#2A865B] active:border-b-0 active:translate-y-[4px]' 
+                : 'bg-stone-300 text-stone-600 border-stone-400 active:border-b-0 active:translate-y-[4px]'
+            }`}
+            title={soundEnabled ? "Mute sounds" : "Unmute sounds"}
+          >
+            {soundEnabled ? <Volume2 className="w-5 h-5" /> : <VolumeX className="w-5 h-5" />}
+          </button>
+
+          {/* Secure Parent Settings Gate Button */}
+          <button 
+            onClick={openSettings}
+            className="w-10 h-10 bg-white hover:bg-[#FFFDF9] text-[#8A7968] border-2 border-[#EADFC7] rounded-xl flex items-center justify-center shadow-sm active:scale-95 transition-all"
+            title="Parent Settings"
+          >
+            <Settings className="w-5 h-5" />
+          </button>
+        </div>
+      </header>
+
+      {/* --- MAIN HERO MASCOT & SUN BACKGROUND --- */}
+      <main className="flex-1 max-w-md mx-auto w-full px-6 flex flex-col justify-start gap-4">
+        
+        {/* Dynamic Vector Giraffe Card */}
+        <section className="relative bg-white rounded-[2.5rem] p-6 shadow-md border-4 border-[#FDF2D5] flex flex-col items-center justify-center text-center overflow-hidden">
+          
+          {/* Sunshine Circle */}
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-[60%] w-52 h-52 bg-[#FDB022]/15 rounded-full blur-2xl pointer-events-none" />
+
+          {/* Dynamic Interactive SVG Mascot Giraffe */}
+          <div className="relative w-40 h-40 flex items-center justify-center">
+            <svg viewBox="0 0 120 120" className="w-full h-full transform transition-all duration-300 hover:scale-105">
+              {/* Outer Yellow Sun Backdrop */}
+              <circle cx="60" cy="55" r="42" fill="#FDB022" />
+              <circle cx="60" cy="55" r="38" fill="#FFF" opacity="0.1" />
+
+              {/* Giraffe Neck */}
+              <path d="M50,75 L50,110 L70,110 L70,75 Z" fill="#FFA33C" />
+              <path d="M50,75 L50,110 L56,110 L56,77 Z" fill="#E68019" opacity="0.15" /> {/* shadow */}
+
+              {/* Spots on Neck */}
+              <ellipse cx="54" cy="85" rx="3" ry="5" fill="#C25910" />
+              <ellipse cx="65" cy="94" rx="4" ry="3" fill="#C25910" />
+              <ellipse cx="55" cy="103" rx="3" ry="4" fill="#C25910" />
+
+              {/* Head Outline */}
+              <path d="M45,45 C35,45 32,55 35,65 C38,75 52,78 60,78 C75,78 85,73 85,60 C85,45 78,42 60,42 Z" fill="#FFA33C" />
+              
+              {/* Soft Giraffe Snout */}
+              <path d="M58,58 C58,58 75,56 82,62 C85,65 83,72 78,75 C70,78 58,78 58,78 Z" fill="#FFE5CC" />
+
+              {/* Mouth based on expressions */}
+              {mascotExpression === 'excited' && (
+                <path d="M68,66 Q72,74 76,66" fill="none" stroke="#A04000" strokeWidth="2.5" strokeLinecap="round" />
+              )}
+              {mascotExpression === 'wink' && (
+                <path d="M68,67 Q73,70 78,67" fill="none" stroke="#A04000" strokeWidth="2.2" strokeLinecap="round" />
+              )}
+              {mascotExpression === 'happy' && (
+                <path d="M68,68 Q74,72 78,66" fill="none" stroke="#A04000" strokeWidth="2.5" strokeLinecap="round" />
+              )}
+              {mascotExpression === 'surprised' && (
+                <circle cx="72" cy="68" r="3.5" fill="#A04000" />
+              )}
+              {mascotExpression === 'neutral' && (
+                <path d="M69,68 Q73,70 77,67" fill="none" stroke="#A04000" strokeWidth="2" strokeLinecap="round" />
+              )}
+
+              {/* Nostril */}
+              <circle cx="78" cy="62" r="1.5" fill="#C25910" opacity="0.5" />
+
+              {/* Cute Eyes */}
+              {mascotExpression === 'wink' ? (
+                <>
+                  {/* Left Eye closed */}
+                  <path d="M48,56 Q52,60 56,56" fill="none" stroke="#4A3E3D" strokeWidth="2.5" strokeLinecap="round" />
+                  {/* Right Eye open */}
+                  <circle cx="68" cy="54" r="4" fill="#4A3E3D" />
+                  <circle cx="66" cy="52" r="1.5" fill="#FFF" />
+                </>
+              ) : mascotExpression === 'excited' ? (
+                <>
+                  <circle cx="52" cy="53" r="4.5" fill="#4A3E3D" />
+                  <circle cx="50" cy="51" r="1.8" fill="#FFF" />
+                  <circle cx="68" cy="53" r="4.5" fill="#4A3E3D" />
+                  <circle cx="66" cy="51" r="1.8" fill="#FFF" />
+                </>
+              ) : mascotExpression === 'surprised' ? (
+                <>
+                  <circle cx="52" cy="53" r="5" fill="#4A3E3D" />
+                  <circle cx="52" cy="53" r="1.8" fill="#FFF" />
+                  <circle cx="68" cy="53" r="5" fill="#4A3E3D" />
+                  <circle cx="68" cy="53" r="1.8" fill="#FFF" />
+                </>
+              ) : (
+                <>
+                  {/* Default happy eyes */}
+                  <circle cx="51" cy="54" r="3.8" fill="#4A3E3D" />
+                  <circle cx="49" cy="52" r="1.2" fill="#FFF" />
+                  <circle cx="67" cy="54" r="3.8" fill="#4A3E3D" />
+                  <circle cx="65" cy="52" r="1.2" fill="#FFF" />
+                </>
+              )}
+
+              {/* Giraffe Horns (Ossicones) */}
+              <path d="M52,43 L48,32" stroke="#FFA33C" strokeWidth="4" strokeLinecap="round" />
+              <circle cx="47" cy="31" r="4" fill="#C25910" />
+              
+              <path d="M60,43 L60,30" stroke="#FFA33C" strokeWidth="4" strokeLinecap="round" />
+              <circle cx="60" cy="29" r="4" fill="#C25910" />
+
+              {/* Cute Giraffe Ears */}
+              <path d="M43,48 Q35,46 36,41 Q43,42 45,47 Z" fill="#FFA33C" />
+              <path d="M42,47 Q37,45 38,42 Z" fill="#FFC0CB" /> {/* Ear inner */}
+
+              {/* Cheek Blush */}
+              <ellipse cx="44" cy="61" rx="4" ry="2" fill="#FF9E9E" opacity="0.6" />
+              <ellipse cx="64" cy="62" rx="3" ry="1.5" fill="#FF9E9E" opacity="0.6" />
+
+              {/* Spots on Head */}
+              <ellipse cx="41" cy="68" rx="2" ry="3" fill="#C25910" />
+              <ellipse cx="50" cy="46" rx="3" ry="2" fill="#C25910" />
+            </svg>
+          </div>
+
+          <div className="mt-3">
+            <span className="inline-flex items-center px-4 py-1.5 rounded-full text-sm font-black bg-[#FDF2D5] text-[#A06A14]">
+              {stars < 10 ? `Gus has ${stars} of 10 Stars!` : `Yay, 10 Stars achieved! 🎉`}
+            </span>
+          </div>
+        </section>
+
+        {/* --- REWARD TRACKER COMPONENT --- */}
+        <section className="bg-white rounded-3xl p-5 shadow-sm border-2 border-[#FFF2D5] flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-[#FFEFEB] flex items-center justify-center text-xl">
+              🏆
+            </div>
+            <div>
+              <p className="text-xs text-[#8A7968] font-bold uppercase tracking-wider">Goal Reward</p>
+              <h3 className="font-extrabold text-lg text-[#4A3E3D]">{reward || "Set a prize in settings!"}</h3>
+            </div>
+          </div>
+          <div className="flex items-center justify-center bg-[#FDF6E2] text-xs font-black text-[#A06A14] px-3 py-1.5 rounded-xl border border-[#EADFC7]">
+            10 Stars = Reward!
+          </div>
+        </section>
+
+        {/* --- TOKENS GRID (THE WOODEN Safari BOARD) --- */}
+        <section className="bg-[#FFFDF9] rounded-[2.5rem] p-5 shadow-inner border-2 border-[#EADFC7]">
+          <div className="grid grid-cols-5 gap-3.5">
+            {Array.from({ length: 10 }).map((_, index) => {
+              const starNumber = index + 1;
+              const isEarned = starNumber <= stars;
+              return (
+                <div 
+                  key={index}
+                  className={`relative aspect-square rounded-2xl flex flex-col items-center justify-center border-2 transition-all duration-300 transform ${
+                    isEarned 
+                      ? 'bg-gradient-to-br from-[#FFF5CE] to-[#FDB022] border-[#FDB022] shadow-[0_5px_0_#C58200] scale-105 z-10' 
+                      : 'bg-[#F2EDDF] border-[#E2D9C5] shadow-[inset_0_2px_4px_rgba(0,0,0,0.04)]'
+                  }`}
+                >
+                  {/* Tiny Number Indicator */}
+                  <span className={`absolute top-1 left-2 text-[10px] font-black ${
+                    isEarned ? 'text-[#8A5A00] opacity-80' : 'text-[#8A7968] opacity-50'
+                  }`}>
+                    {starNumber}
+                  </span>
+
+                  {/* High Quality Star Graphic */}
+                  <svg 
+                    viewBox="0 0 24 24" 
+                    className={`w-10 h-10 drop-shadow transition-all duration-300 ${
+                      isEarned ? 'fill-[#FFF] scale-110 rotate-12 stroke-[#8A5A00] stroke-[1px]' : 'fill-[#C4B9A1] opacity-35 scale-90'
+                    }`}
+                  >
+                    <polygon points="12,2 15,9 22,9 17,14 19,21 12,17 5,21 7,14 2,9 9,9" />
+                  </svg>
+
+                  {/* Sparkle effects on earned items */}
+                  {isEarned && (
+                    <div className="absolute inset-0 bg-white/20 rounded-2xl animate-ping pointer-events-none" style={{ animationDuration: '2s' }} />
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </section>
+
+        {/* --- TACTILE CONTROLS PANEL --- */}
+        <section className="flex flex-col gap-3 mt-2">
+          
+          {/* Main Add Star Button */}
+          {stars < 10 ? (
+            <button
+              onClick={addStar}
+              className="w-full bg-[#FF5743] hover:bg-[#E04936] text-white font-black text-2xl py-5 rounded-[2rem] border-b-[8px] border-[#BD3B2B] hover:border-b-[4px] hover:translate-y-[4px] active:border-b-0 active:translate-y-[8px] transition-all flex items-center justify-center gap-3 shadow-lg group"
+            >
+              <Plus className="w-8 h-8 stroke-[3.5px] group-hover:rotate-90 transition-transform duration-300" />
+              I Peed in the Potty!
+            </button>
+          ) : (
+            <div className="bg-[#41B07D] rounded-[2rem] p-6 text-white text-center border-b-[8px] border-[#2E835B] shadow-lg animate-bounce">
+              <h2 className="text-2xl font-black mb-1 flex items-center justify-center gap-2">
+                <Sparkles className="w-6 h-6 text-[#FDB022] fill-[#FDB022]" /> Good Job Gus! <Sparkles className="w-6 h-6 text-[#FDB022] fill-[#FDB022]" />
+              </h2>
+              <p className="font-bold opacity-90 text-sm mb-4">You got all 10 stars! Go claim your prize:</p>
+              <div className="bg-white/10 rounded-2xl py-3 px-4 inline-block font-black text-lg border border-white/20 mb-4">
+                {reward}
+              </div>
+              <button 
+                onClick={resetStars}
+                className="w-full bg-[#FDB022] text-[#4A3E3D] font-black text-lg py-3 rounded-2xl border-b-4 border-[#C58200] active:border-b-0 active:translate-y-1 transition-all flex items-center justify-center gap-2"
+              >
+                <RotateCcw className="w-5 h-5 stroke-[2.5px]" /> Start New Board!
+              </button>
+            </div>
+          )}
+
+          {/* Oops/Undo Button - Dynamically hidden when Stars are 0, or board is finished */}
+          {stars > 0 && stars < 10 && (
+            <button
+              onClick={undoLastStar}
+              className="w-full bg-[#FFFDF9] hover:bg-[#FFF] text-[#8A7968] font-bold text-base py-3 rounded-2xl border-2 border-[#EADFC7] border-b-4 border-b-[#D8C7A5] active:border-b-2 active:translate-y-[2px] transition-all flex items-center justify-center gap-2"
+            >
+              <Undo2 className="w-4 h-4 stroke-[2.5px]" /> Oops! Undo Last Star
+            </button>
+          )}
+
+        </section>
+
+      </main>
+
+      {/* --- LOCK MODAL (SECURE PARENT SETTINGS) --- */}
+      {parentPanelOpen && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-6 transition-all duration-300">
+          <div className="bg-white rounded-[2.5rem] w-full max-w-md p-6 border-4 border-[#FFF2D5] shadow-2xl relative overflow-hidden">
             
-            <!-- Mobile App Installation / Guide Widget -->
-            <div class="absolute bottom-4 right-4 left-4 sm:left-auto bg-gray-900/95 border border-gray-800 p-3.5 rounded-xl z-[1000] backdrop-blur-md text-xs space-y-2 shadow-2xl max-w-sm pointer-events-auto">
-                <div class="font-bold text-white flex items-center justify-between">
-                    <span class="flex items-center gap-2">
-                        <span class="flex h-2 w-2 rounded-full bg-indigo-500 animate-pulse"></span>
-                        Mobile App Mode Enabled 📲
-                    </span>
-                    <button onclick="this.parentElement.parentElement.remove()" class="text-gray-500 hover:text-white font-bold">&times;</button>
+            {/* Header */}
+            <div className="flex items-center justify-between mb-4 pb-3 border-b-2 border-[#FDF6E2]">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-[#FFEFEB] text-[#FF5743] flex items-center justify-center">
+                  <Lock className="w-4 h-4 stroke-[2.5px]" />
                 </div>
-                <p class="text-gray-400 leading-normal text-[11px]">
-                    To install this map on your iPhone/Android: Upload this file to any free hosting (like Netlify or Github), open it in Safari/Chrome, tap <strong class="text-white">Share / Options</strong>, and select <strong class="text-indigo-400">Add to Home Screen</strong>!
-                </p>
+                <h3 className="font-black text-xl text-[#4A3E3D]">Parent Verification Gate</h3>
+              </div>
+              <button 
+                onClick={() => { setParentPanelOpen(false); playPopTone(); }}
+                className="w-8 h-8 rounded-full bg-[#FDF6E2] text-[#8A7968] flex items-center justify-center active:scale-95"
+              >
+                <X className="w-4 h-4" />
+              </button>
             </div>
-        </main>
+
+            {/* Verification Gate Content */}
+            {!gatePassed ? (
+              <div className="space-y-4">
+                <p className="text-xs text-[#8A7968] font-bold leading-relaxed">
+                  Please answer this multiplication question to access configuration, edits, and logging.
+                </p>
+                
+                <div className="bg-[#FFFDF9] border-2 border-[#EADFC7] p-5 rounded-2xl text-center">
+                  <span className="text-xs font-bold text-[#8A7968] uppercase tracking-wider">Solve this:</span>
+                  <p className="text-3xl font-black mt-1 text-[#4A3E3D]">
+                    {gateNum1} &times; {gateNum2} = ?
+                  </p>
+                </div>
+
+                <div>
+                  <input 
+                    type="number"
+                    value={gateAnswer}
+                    onChange={(e) => setGateAnswer(e.target.value)}
+                    placeholder="Enter answer"
+                    className="w-full text-center py-4 px-4 bg-[#FDF6E2] border-2 border-[#EADFC7] rounded-2xl text-2xl font-black text-[#4A3E3D] focus:outline-none focus:border-[#FDB022] transition-colors"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') handleVerifyParent();
+                    }}
+                  />
+                  {gateError && (
+                    <p className="text-[#FF5743] text-xs font-bold mt-1 text-center">
+                      Incorrect answer. Give it another try!
+                    </p>
+                  )}
+                </div>
+
+                <button 
+                  onClick={handleVerifyParent}
+                  className="w-full bg-[#FF5743] text-white font-black py-4 rounded-2xl border-b-4 border-[#BD3B2B] active:border-b-0 active:translate-y-1 transition-all"
+                >
+                  Verify Access
+                </button>
+              </div>
+            ) : (
+              // Settings Portal content when unlocked
+              <div className="space-y-6">
+                
+                {/* Reward Configuration */}
+                <div>
+                  <label className="block text-xs font-black uppercase text-[#8A7968] tracking-wider mb-2">
+                    🎯 Define Gus's Reward (Prize)
+                  </label>
+                  <input 
+                    type="text" 
+                    value={reward} 
+                    onChange={(e) => setReward(e.target.value)} 
+                    placeholder="e.g. 🍦 Double Scoop Ice Cream!"
+                    className="w-full py-3.5 px-4 bg-[#FDF6E2] border-2 border-[#EADFC7] rounded-2xl font-bold text-[#4A3E3D] focus:outline-none focus:border-[#FDB022]"
+                  />
+                </div>
+
+                {/* Edit Star count manually */}
+                <div>
+                  <label className="block text-xs font-black uppercase text-[#8A7968] tracking-wider mb-2">
+                    ⭐ Direct Star Count Adjustment ({stars}/10)
+                  </label>
+                  <div className="flex gap-2">
+                    {Array.from({ length: 11 }).map((_, i) => (
+                      <button
+                        key={i}
+                        onClick={() => { setStars(i); playPopTone(); }}
+                        className={`w-9 h-9 rounded-lg font-black text-sm border-2 ${
+                          stars === i 
+                            ? 'bg-[#FDB022] border-[#FDB022] text-[#4A3E3D]' 
+                            : 'bg-[#FFFDF9] border-[#EADFC7] text-[#8A7968]'
+                        }`}
+                      >
+                        {i}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Historical Database logs */}
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="block text-xs font-black uppercase text-[#8A7968] tracking-wider">
+                      📜 Activity Log & Event Timestamps
+                    </label>
+                    <button 
+                      onClick={clearHistory}
+                      className="text-[10px] bg-red-50 text-red-600 font-bold px-2 py-1 rounded hover:bg-red-100 flex items-center gap-1"
+                    >
+                      <Trash2 className="w-3 h-3" /> Clear Logs
+                    </button>
+                  </div>
+                  <div className="max-h-40 overflow-y-auto bg-[#FDF6E2] border-2 border-[#EADFC7] rounded-2xl p-3 text-xs space-y-2">
+                    {history.map((log) => (
+                      <div key={log.id} className="flex justify-between items-start border-b border-[#EADFC7]/50 pb-1.5 last:border-b-0">
+                        <div>
+                          <span className="font-bold text-[#4A3E3D] block">{log.message}</span>
+                          <span className="text-[10px] text-stone-400">
+                            {new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                        </div>
+                        <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider ${
+                          log.type === 'add' ? 'bg-[#E3F4EC] text-[#2EA46F]' : 
+                          log.type === 'undo' ? 'bg-[#FEF5D1] text-[#A67E12]' : 'bg-stone-200 text-stone-600'
+                        }`}>
+                          {log.type}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Quick reset actions */}
+                <div className="pt-4 border-t border-[#FDF6E2] flex gap-3">
+                  <button 
+                    onClick={() => { resetStars(); setParentPanelOpen(false); }}
+                    className="flex-1 bg-amber-50 text-amber-700 hover:bg-amber-100 font-bold py-3 px-4 rounded-xl text-sm border border-amber-200 flex items-center justify-center gap-2"
+                  >
+                    <RotateCcw className="w-4 h-4" /> Reset Board
+                  </button>
+                  <button 
+                    onClick={() => { setParentPanelOpen(false); playPopTone(); }}
+                    className="flex-1 bg-[#41B07D] text-white font-black py-3 px-4 rounded-xl text-sm border-b-4 border-[#2E835B] flex items-center justify-center gap-2"
+                  >
+                    <Check className="w-4 h-4" /> Close Settings
+                  </button>
+                </div>
+
+              </div>
+            )}
+
+          </div>
+        </div>
+      )}
+
+      {/* --- FOOTER ATTR --- */}
+      <footer className="text-center text-[11px] text-[#8A7968]/60 font-bold uppercase tracking-wider py-2">
+        Potty Trainer App &bull; Made with 💛 for Gus
+      </footer>
 
     </div>
-
-    <script>
-        // Geographic coordinate mapping coordinates
-        const itineraryData = {
-            "dec24": {
-                "title": "Dec 24: Flight Arrival & Prep",
-                "city": "London",
-                "center": [51.5298, -0.1720],
-                "zoom": 15,
-                "color": "#3b82f6",
-                "items": [
-                    {"time": "07:10", "title": "LHR Airport Arrival", "desc": "Terminal 3 Heathrow Flight Landing (EK007).", "coords": [51.4700, -0.4543], "icon": "✈️", "cat": "transit"},
-                    {"time": "08:30", "title": "St John's Wood Base", "desc": "Check-in at 96 St John's Wood Terrace townhouse.", "coords": [51.5303, -0.1706], "icon": "🏨", "cat": "lodging"},
-                    {"time": "12:00", "title": "Brunch at Johnny Green", "desc": "Cozy post-flight Australian-style brunch on the High Street.", "coords": [51.5298, -0.1720], "icon": "🍽️", "cat": "food"},
-                    {"time": "14:00", "title": "M&S Simply Food Run", "desc": "Prep shopping for festive meats, mince pies, and trimmings.", "coords": [51.5301, -0.1715], "icon": "🛍️", "cat": "shopping"},
-                    {"time": "18:00", "title": "Noche Buena Dinner", "desc": "Traditional, intimate family dinner gathering at the apartment.", "coords": [51.5303, -0.1706], "icon": "🍽️", "cat": "food"}
-                ]
-            },
-            "dec25": {
-                "title": "Dec 25: Walking Loop",
-                "city": "London",
-                "center": [51.5222, -0.1748],
-                "zoom": 14,
-                "color": "#ef4444",
-                "items": [
-                    {"time": "11:00", "title": "Hyde Park Entry", "desc": "Stroll down Marlborough Gate into wide open spaces.", "coords": [51.5118, -0.1748], "icon": "📸", "cat": "sight"},
-                    {"time": "11:30", "title": "The Dorchester (Beatles)", "desc": "View the iconic hotel landmark where the band once lived.", "coords": [51.5074, -0.1523], "icon": "📸", "cat": "sight"},
-                    {"time": "12:00", "title": "Little Venice Canals", "desc": "Quiet canal walkways lined with decorative glowing houseboats.", "coords": [51.5222, -0.1831], "icon": "📸", "cat": "sight"},
-                    {"time": "12:30", "title": "Abbey Road Zebra Crossing", "desc": "Stress-free, traffic-free group photo on the iconic stripes.", "coords": [51.5321, -0.1773], "icon": "📸", "cat": "sight"},
-                    {"time": "13:30", "title": "Christmas Day Roast", "desc": "Massive holiday feast utilizing Noche Buena leftovers.", "coords": [51.5303, -0.1706], "icon": "🍽️", "cat": "food"},
-                    {"time": "15:30", "title": "Regent's Park Walk", "desc": "Gentle late afternoon stroll and open play for Gus.", "coords": [51.5313, -0.1570], "icon": "📸", "cat": "sight"}
-                ]
-            },
-            "dec26": {
-                "title": "Dec 26: Sights & Winter Wonderland",
-                "city": "London",
-                "center": [51.5080, -0.1419],
-                "zoom": 14,
-                "color": "#10b981",
-                "items": [
-                    {"time": "10:00", "title": "Buckingham Palace Gates", "desc": "Admire the royal majestic palace and golden structures.", "coords": [51.5014, -0.1419], "icon": "📸", "cat": "sight"},
-                    {"time": "11:00", "title": "Trafalgar Square Giant Tree", "desc": "Gaze at the towering traditional Norwegian Spruce tree.", "coords": [51.5080, -0.1281], "icon": "📸", "cat": "sight"},
-                    {"time": "12:00", "title": "Lunch at The Game Bird", "desc": "Comforting British dining in The Stafford's cozy hotel lounge.", "coords": [51.5058, -0.1402], "icon": "🍽️", "cat": "food"},
-                    {"time": "13:30", "title": "Covent Garden Market", "desc": "Wander the glowing glass arcade under massive festive ornaments.", "coords": [51.5115, -0.1224], "icon": "📸", "cat": "sight"},
-                    {"time": "14:30", "title": "Cecil Court Old Lane", "desc": "Walk historic pedestrian Victorian bookstores lane.", "coords": [51.5101, -0.1278], "icon": "📸", "cat": "sight"},
-                    {"time": "15:30", "title": "Soho Christmas Lights", "desc": "Wander under the radiant, colorful dangles along the high street.", "coords": [51.5135, -0.1396], "icon": "📸", "cat": "sight"},
-                    {"time": "16:30", "title": "Winter Wonderland", "desc": "Hyde Park carnival rides, grand carousels, and hot sweets.", "coords": [51.5075, -0.1650], "icon": "🛝", "cat": "playground"}
-                ]
-            },
-            "dec27": {
-                "title": "Dec 27: Private Cotswolds Day Tour",
-                "city": "London",
-                "center": [51.8860, -1.7580],
-                "zoom": 10,
-                "color": "#f59e0b",
-                "items": [
-                    {"time": "08:30", "title": "Doorstep Tour Pickup", "desc": "Viator driver pickup window from St John's Wood Terrace.", "coords": [51.5303, -0.1706], "icon": "✈️", "cat": "transit"},
-                    {"time": "10:45", "title": "Burford Exploration", "desc": "Explore stunning medieval high street and shops.", "coords": [51.8080, -1.6360], "icon": "📸", "cat": "sight"},
-                    {"time": "11:45", "title": "Stow-on-the-Wold Square", "desc": "Ancient market square walk and warming Afternoon Tea.", "coords": [51.9298, -1.7248], "icon": "🍽️", "cat": "food"},
-                    {"time": "13:55", "title": "Lower Slaughter", "desc": "Tranquil stroll over tiny stone bridges and scenic wool mill.", "coords": [51.9056, -1.7641], "icon": "📸", "cat": "sight"},
-                    {"time": "14:35", "title": "Bourton-on-the-Water", "desc": "Explore the replica Venice bridges and historic toyshops.", "coords": [51.8860, -1.7580], "icon": "📸", "cat": "sight"},
-                    {"time": "15:35", "title": "Arlington Row (Bibury)", "desc": "Ultimate family photo walk by iconic weavers' cottages.", "coords": [51.7592, -1.8315], "icon": "📸", "cat": "sight"},
-                    {"time": "18:00", "title": "Return Drop-off", "desc": "Arrive safely back at your St John's Wood apartment.", "coords": [51.5303, -0.1706], "icon": "🏨", "cat": "lodging"}
-                ]
-            },
-            "dec28": {
-                "title": "Dec 28: Borough Market & Cruise",
-                "city": "London",
-                "center": [51.5055, -0.0909],
-                "zoom": 14,
-                "color": "#8b5cf6",
-                "items": [
-                    {"time": "10:00", "title": "Borough Market Feast", "desc": "Explore sensory winter cooking stalls under the iron arches.", "coords": [51.5055, -0.0909], "icon": "🍽️", "cat": "food"},
-                    {"time": "12:00", "title": "Hobbs Roast Baguettes", "desc": "Lunch stop for hot pork baguettes drenched in rich gray gravy.", "coords": [51.5055, -0.0909], "icon": "🍽️", "cat": "food"},
-                    {"time": "13:30", "title": "Thames Sightseeing Cruise", "desc": "Glass-sheltered river boat ride passing Tower Bridge, Eye & Big Ben.", "coords": [51.5065, -0.0863], "icon": "📸", "cat": "sight"},
-                    {"time": "15:30", "title": "Abbey Road Souvenirs", "desc": "Shop for exclusive Beatles memorabilia right next to studios.", "coords": [51.5319, -0.1777], "icon": "🛍️", "cat": "shopping"}
-                ]
-            },
-            "dec29": {
-                "title": "Dec 29: Stonehenge & Bath Tour",
-                "city": "London",
-                "center": [51.2814, -2.0596],
-                "zoom": 9,
-                "color": "#ec4899",
-                "items": [
-                    {"time": "08:30", "title": "Depart for Stonehenge", "desc": "Drive west to the famous UNESCO World Heritage site.", "coords": [51.1789, -1.8262], "icon": "📸", "cat": "sight"},
-                    {"time": "11:30", "title": "Travel to Bath", "desc": "Head into the beautiful Georgian town streets.", "coords": [51.3814, -2.3596], "icon": "📸", "cat": "sight"},
-                    {"time": "12:30", "title": "Lunch at Cosy Club", "desc": "Accessible dining in elegant rooms with elevator accessibility.", "coords": [51.3814, -2.3596], "icon": "🍽️", "cat": "food"},
-                    {"time": "14:00", "title": "The Roman Baths", "desc": "Tour the fully indoor-heated baths with kids' audio guides.", "coords": [51.3814, -2.3596], "icon": "📸", "cat": "sight"}
-                ]
-            },
-            "dec30": {
-                "title": "Dec 30: Towpath Walk & Notting Hill",
-                "city": "London",
-                "center": [51.5280, -0.1700],
-                "zoom": 14,
-                "color": "#14b8a6",
-                "items": [
-                    {"time": "10:00", "title": "Regent's Canal Walkway", "desc": "Stroll past Zoo enclosures to spot free wildlife and bird displays.", "coords": [51.5415, -0.1460], "icon": "📸", "cat": "sight"},
-                    {"time": "12:00", "title": "Camden Market Lunch", "desc": "Snack on street favorites like halloumi fries and mac & cheese.", "coords": [51.5415, -0.1460], "icon": "🍽️", "cat": "food"},
-                    {"time": "14:00", "title": "Notting Hill Pastel Rows", "desc": "Lancaster Road colorful townhouse photos during afternoon walk.", "coords": [51.5173, -0.2078], "icon": "📸", "cat": "sight"},
-                    {"time": "16:00", "title": "Cavendish Ave (Paul's Gate)", "desc": "Wander past Paul McCartney's historic London townhouse entry.", "coords": [51.5323, -0.1745], "icon": "📸", "cat": "sight"}
-                ]
-            },
-            "dec31": {
-                "title": "Dec 31: Euston Split & Liverpool Arrival",
-                "city": "Liverpool",
-                "center": [53.4079, -2.9774],
-                "zoom": 15,
-                "color": "#3b82f6",
-                "items": [
-                    {"time": "11:00", "title": "Euston Station Transit", "desc": "Meet by departures board following our luggage/tube split strategy.", "coords": [51.5284, -0.1338], "icon": "✈️", "cat": "transit"},
-                    {"time": "14:30", "title": "19 Lord Nelson Street", "desc": "Check-in to historic St George's Quarter base in Liverpool.", "coords": [53.4079, -2.9774], "icon": "🏨", "cat": "lodging"},
-                    {"time": "18:00", "title": "Family NYE Celebration", "desc": "Warm, relaxed NYE countdown dinner inside our home.", "coords": [53.4079, -2.9774], "icon": "🍽️", "cat": "food"}
-                ]
-            },
-            "jan1": {
-                "title": "Jan 1: Albert Dock & Beatles Story",
-                "city": "Liverpool",
-                "center": [53.4011, -2.9926],
-                "zoom": 15,
-                "color": "#6366f1",
-                "items": [
-                    {"time": "10:30", "title": "Albert Docks Walkway", "desc": "Stretch Gus's legs along the historic maritime red-brick yard.", "coords": [53.4011, -2.9926], "icon": "📸", "cat": "sight"},
-                    {"time": "12:00", "title": "Lunch at Gusto Dockside", "desc": "Scenic Italian family dining in the converted brick walls.", "coords": [53.4011, -2.9926], "icon": "🍽️", "cat": "food"},
-                    {"time": "14:00", "title": "The Beatles Story Museum", "desc": "Accessible interactive tour completely shielded from elements.", "coords": [53.3995, -2.9918], "icon": "📸", "cat": "sight"},
-                    {"time": "16:00", "title": "Beatles Cozy Taxi Ride", "desc": "Board pre-booked warm taxi tour directly from dock steps.", "coords": [53.4011, -2.9926], "icon": "📸", "cat": "sight"}
-                ]
-            },
-            "jan2": {
-                "title": "Jan 2: Dad's Birthday & Flight to Lapland",
-                "city": "Liverpool",
-                "center": [53.4035, -2.9725],
-                "zoom": 13,
-                "color": "#eab308",
-                "items": [
-                    {"time": "10:00", "title": "Oxford Street Hospital", "desc": "Stroll by the birth location of John Lennon.", "coords": [53.4038, -2.9710], "icon": "📸", "cat": "sight"},
-                    {"time": "10:30", "title": "Mount Pleasant Registry", "desc": "Stand where John and Cynthia Lennon were married.", "coords": [53.4035, -2.9725], "icon": "📸", "cat": "sight"},
-                    {"time": "11:00", "title": "Penny Lane Sign photo", "desc": "Pull over for custom family birthday group photos.", "coords": [53.3878, -2.9150], "icon": "📸", "cat": "sight"},
-                    {"time": "11:30", "title": "Strawberry Field Stop", "desc": "25-minute explore of the iconic gates and coffee break.", "coords": [53.3804, -2.8942], "icon": "📸", "cat": "sight"},
-                    {"time": "13:00", "title": "Depart Liverpool Airport", "desc": "Private multi-seater transfer to LPL departures.", "coords": [53.4079, -2.9774], "icon": "✈️", "cat": "transit"},
-                    {"time": "21:45", "title": "Lapland Resort Landing", "desc": "Arrive at RVN; transfer directly via Aito luxury shuttle.", "coords": [66.5615, 25.8350], "icon": "🏨", "cat": "lodging"}
-                ]
-            },
-            "jan3": {
-                "title": "Jan 3: Santa Claus Village",
-                "city": "Rovaniemi",
-                "center": [66.5436, 25.8480],
-                "zoom": 14,
-                "color": "#10b981",
-                "items": [
-                    {"time": "10:00", "title": "Arctic Circle Crossing", "desc": "Walk stroller-friendly snow paths in the holiday village.", "coords": [66.5436, 25.8480], "icon": "📸", "cat": "sight"},
-                    {"time": "11:30", "title": "Meet Santa Claus", "desc": "Fireside meeting in the main cabin for Gus's portrait.", "coords": [66.5436, 25.8480], "icon": "📸", "cat": "sight"},
-                    {"time": "12:30", "title": "Santa's Salmon Place", "desc": "Fresh salmon cooked over giant open wood fires in tepee.", "coords": [66.5434, 25.8475], "icon": "🍽️", "cat": "food"},
-                    {"time": "15:00", "title": "Aito Indoor Thermal Spa", "desc": "Relax in indoor heated pools and steam rooms.", "coords": [66.5615, 25.8350], "icon": "🏨", "cat": "lodging"}
-                ]
-            },
-            "jan4": {
-                "title": "Jan 4: Husky Dog Sledding Safari",
-                "city": "Rovaniemi",
-                "center": [66.5500, 25.8100],
-                "zoom": 13,
-                "color": "#f43f5e",
-                "items": [
-                    {"time": "10:30", "title": "Husky Mushing Camp", "desc": "Bundle Gus and family into sleds for 5km wilderness run.", "coords": [66.5500, 25.8100], "icon": "📸", "cat": "sight"},
-                    {"time": "13:00", "title": "Trio Forest Walk", "desc": "Quiet stroller walk on resort grounds as family departs.", "coords": [66.5615, 25.8350], "icon": "📸", "cat": "sight"}
-                ]
-            },
-            "jan5": {
-                "title": "Jan 5: High-Speed Rail & Gamla Stan",
-                "city": "Stockholm",
-                "center": [59.3248, 18.0694],
-                "zoom": 15,
-                "color": "#3b82f6",
-                "items": [
-                    {"time": "16:55", "title": "Arlanda Airport Arrival", "desc": "Take Arlanda Express (18-min level rail) to Central.", "coords": [59.3248, 18.0694], "icon": "✈️", "cat": "transit"},
-                    {"time": "17:15", "title": "Hotel Sven Vintappare", "desc": "Check-in to historic Gamla Stan boutique suite.", "coords": [59.3248, 18.0694], "icon": "🏨", "cat": "lodging"},
-                    {"time": "17:30", "title": "Coop Järntorget", "desc": "Quick stroller run for klämmisar pouches and milk.", "coords": [59.3228, 18.0725], "icon": "🛍️", "cat": "shopping"},
-                    {"time": "18:00", "title": "Den Gyldene Freden", "desc": "Elite meatballs and cream sauce in old cellar dining room.", "coords": [59.3248, 18.0694], "icon": "🍽️", "cat": "food"}
-                ]
-            },
-            "jan6": {
-                "title": "Jan 6: Södermalm Playground & Retail",
-                "city": "Stockholm",
-                "center": [59.3140, 18.0750],
-                "zoom": 14,
-                "color": "#8b5cf6",
-                "items": [
-                    {"time": "10:00", "title": "Stortorget Square Walk", "desc": "Photos against colorful Gamla Stan townhouses.", "coords": [59.3250, 18.0706], "icon": "📸", "cat": "sight"},
-                    {"time": "12:30", "title": "Bryggartäppan Playground", "desc": "Custom 19th-century toy village playground structures.", "coords": [59.3135, 18.0750], "icon": "🛝", "cat": "playground"},
-                    {"time": "14:15", "title": "Nitty Gritty Retail Loop", "desc": "Husband's design shopping loop as Gus naps.", "coords": [59.3175, 18.0630], "icon": "🛍️", "cat": "shopping"},
-                    {"time": "15:00", "title": "Our Legacy Södermalm", "desc": "Browse high-end Scandi tailoring line boutique.", "coords": [59.3140, 18.0760], "icon": "🛍️", "cat": "shopping"}
-                ]
-            },
-            "jan7": {
-                "title": "Jan 7: Vasa Museum & Design Flagships",
-                "city": "Stockholm",
-                "center": [59.3332, 18.0720],
-                "zoom": 14,
-                "color": "#ec4899",
-                "items": [
-                    {"time": "10:00", "title": "Djurgården Harbor Ferry", "desc": "8-minute scenic winter boat ride from Slussen pier.", "coords": [59.3248, 18.0694], "icon": "✈️", "cat": "transit"},
-                    {"time": "10:20", "title": "The Vasa Museum", "desc": "See grand intact warship in heated, accessible hall.", "coords": [59.3280, 18.0914], "icon": "📸", "cat": "sight"},
-                    {"time": "12:35", "title": "Östermalms Saluhall Lunch", "desc": "Fresh shrimp toast in the grand red-brick dining hall.", "coords": [59.3361, 18.0736], "icon": "🍽️", "cat": "food"},
-                    {"time": "14:00", "title": "Arket Flagship Shop", "desc": "Homeware and modern family wear design loop.", "coords": [59.3332, 18.0720], "icon": "🛍️", "cat": "shopping"},
-                    {"time": "15:00", "title": "Our Legacy Flagship", "desc": "Husband sweeps central independent fashion boutique.", "coords": [59.3355, 18.0730], "icon": "🛍️", "cat": "shopping"},
-                    {"time": "15:45", "title": "Acne Archive Outlet", "desc": "Deep discounts on archival Acne Studios runway gear.", "coords": [59.3400, 18.0400], "icon": "🛍️", "cat": "shopping"}
-                ]
-            },
-            "jan8": {
-                "title": "Jan 8: Bergen Arrival & Fika Waffles",
-                "city": "Bergen",
-                "center": [60.3980, 5.3250],
-                "zoom": 15,
-                "color": "#14b8a6",
-                "items": [
-                    {"time": "15:30", "title": "Bybanen Light Rail Transit", "desc": "Heated level ride from BGO airport directly to center.", "coords": [60.3900, 5.3250], "icon": "✈️", "cat": "transit"},
-                    {"time": "16:00", "title": "REMA 1000 Grocery run", "desc": "Stock room shelves with milk and fresh berry cartons.", "coords": [60.3918, 5.3260], "icon": "🛍️", "cat": "shopping"},
-                    {"time": "16:15", "title": "Byparken Play Stop", "desc": "Let Gus play on low swings right by lakeside lawn.", "coords": [60.3900, 5.3250], "icon": "🛝", "cat": "playground"},
-                    {"time": "16:45", "title": "Home Hotel Bryggen", "desc": "Check-in and enjoy included waffle fika buffet lounge.", "coords": [60.3980, 5.3250], "icon": "🏨", "cat": "lodging"}
-                ]
-            },
-            "jan9": {
-                "title": "Jan 9: Mount Fløyen Timber Play & Pizza",
-                "city": "Bergen",
-                "center": [60.3945, 5.3430],
-                "zoom": 14,
-                "color": "#eab308",
-                "items": [
-                    {"time": "10:00", "title": "Bryggen Wooden Facades", "desc": "Morning dockside photos by iconic leaning houses.", "coords": [60.3980, 5.3250], "icon": "📸", "cat": "sight"},
-                    {"time": "11:45", "title": "Fløyen Funicular Climb", "desc": "Glide 6 minutes up the peak to Fløyen Forest structures.", "coords": [60.3945, 5.3430], "icon": "🛝", "cat": "playground"},
-                    {"time": "13:15", "title": "Hoggorm Wood-Fired Pizza", "desc": "Excellent New York slices paired with natural wine.", "coords": [60.3860, 5.3325], "icon": "🍽️", "cat": "food"}
-                ]
-            },
-            "jan10": {
-                "title": "Jan 10: Fjord Cruise & Nordnes Park",
-                "city": "Bergen",
-                "center": [60.3985, 5.3050],
-                "zoom": 14,
-                "color": "#a855f7",
-                "items": [
-                    {"time": "10:00", "title": "Mostraumen Fjord Cruise", "desc": "Heated glass cabin ride into towering Osterfjorden.", "coords": [60.3955, 5.3255], "icon": "📸", "cat": "sight"},
-                    {"time": "13:15", "title": "Fisketorget Seafood Lunch", "desc": "Cozy indoor seafood hall bowls of fresh fish soup.", "coords": [60.3955, 5.3255], "icon": "🍽️", "cat": "food"},
-                    {"time": "14:15", "title": "Plaskis (Nordnes Park)", "desc": "Seaside swings and climbing frames as Gus naps.", "coords": [60.3985, 5.3050], "icon": "🛝", "cat": "playground"}
-                ]
-            },
-            "jan11": {
-                "title": "Jan 11: Copenhagen Base & Popl Burger",
-                "city": "Copenhagen",
-                "center": [55.6775, 12.5680],
-                "zoom": 14,
-                "color": "#3b82f6",
-                "items": [
-                    {"time": "14:30", "title": "Hotel Bella Grande", "desc": "Check-in to design hotel right off Rådhuspladsen.", "coords": [55.6775, 12.5680], "icon": "🏨", "cat": "lodging"},
-                    {"time": "15:00", "title": "Føtex Grocery Sweep", "desc": "Pick up milk and toddler travel packs right on Vesterbro.", "coords": [55.6730, 12.5530], "icon": "🛍️", "cat": "shopping"},
-                    {"time": "16:00", "title": "Skydebanehaven Playground", "desc": "Gigantic neon-painted wooden parrot play structure.", "coords": [55.6705, 12.5510], "icon": "🛝", "cat": "playground"},
-                    {"time": "17:30", "title": "Popl Noma Smash Burgers", "desc": "Elite family-friendly burgers in warm wood space.", "coords": [55.6790, 12.5930], "icon": "🍽️", "cat": "food"},
-                    {"time": "19:30", "title": "Drinks at Apollo Bar", "desc": "Quiet nightcap drink in the creative palace courtyard.", "coords": [55.6800, 12.5875], "icon": "🍽️", "cat": "food"}
-                ]
-            },
-            "jan12": {
-                "title": "Jan 12: Monstrum Dragons & Audo Showroom",
-                "city": "Copenhagen",
-                "center": [55.6930, 12.6150],
-                "zoom": 12,
-                "color": "#10b981",
-                "items": [
-                    {"time": "10:00", "title": "The King's Garden Dragon", "desc": "Award-winning Monstrum castle-themed structures.", "coords": [55.6850, 12.5780], "icon": "🛝", "cat": "playground"},
-                    {"time": "11:30", "title": "Hart Bageri Tebirkes", "desc": "Secure flaky morning bakes and Prolog coffees.", "coords": [55.6845, 12.5800], "icon": "🍽️", "cat": "food"},
-                    {"time": "12:00", "title": "Lunch at Lille Bakery", "desc": "Sausage rolls and flatbread bakes out in shipyards.", "coords": [55.6930, 12.6150], "icon": "🍽️", "cat": "food"},
-                    {"time": "13:45", "title": "Audo House Showroom", "desc": "Homeware interior designs and coffees in the quiet docks.", "coords": [55.7075, 12.5920], "icon": "🛍️", "cat": "shopping"}
-                ]
-            },
-            "jan13": {
-                "title": "Jan 13: Core Retail & Vintage Safari",
-                "city": "Copenhagen",
-                "center": [55.6780, 12.5760],
-                "zoom": 15,
-                "color": "#f59e0b",
-                "items": [
-                    {"time": "09:30", "title": "Breakfast at Sonny", "desc": "Premium specialty filters sourcing beans from La Cabra.", "coords": [55.6780, 12.5760], "icon": "🍽️", "cat": "food"},
-                    {"time": "10:15", "title": "HAY House Flagship", "desc": "Browse gorgeous homeware showrooms on the square.", "coords": [55.6790, 12.5780], "icon": "🛍️", "cat": "shopping"},
-                    {"time": "11:00", "title": "Norse Store & Another Aspect", "desc": "Husband sweeps central menswear design spots.", "coords": [55.6810, 12.5800], "icon": "🛍️", "cat": "shopping"},
-                    {"time": "11:30", "title": "Nikolaj Plads Playground", "desc": "Balance logs and abstract spires behind the boutiques.", "coords": [55.6785, 12.5815], "icon": "🛝", "cat": "playground"},
-                    {"time": "12:30", "title": "Smørrebrød at Gammeltorv", "desc": "Classic pickled herring lunch in historic wood room.", "coords": [55.6782, 12.5725], "icon": "🍽️", "cat": "food"},
-                    {"time": "14:00", "title": "Mfpen & OSV Secondhand", "desc": "Archive menswear lines and vintage pieces on Studiestræde.", "coords": [55.6795, 12.5700], "icon": "🛍️", "cat": "shopping"},
-                    {"time": "15:00", "title": "Darcy's Coffee break", "desc": "Elite Wendelboe espressos on the block as Gus naps.", "coords": [55.6870, 12.5570], "icon": "🍽️", "cat": "food"},
-                    {"time": "17:30", "title": "Pasta Feast at Mangia", "desc": "Rich Italian egg noodles and savory anchovy toast.", "coords": [55.6735, 12.5550], "icon": "🍽️", "cat": "food"}
-                ]
-            },
-            "jan14": {
-                "title": "Jan 14: Cardamom Buns & Natural Wines",
-                "city": "Copenhagen",
-                "center": [55.6840, 12.5650],
-                "zoom": 14,
-                "color": "#a855f7",
-                "items": [
-                    {"time": "09:30", "title": "Juno the Bakery Buns", "desc": "Stand in line for world-famous cardamom buns.", "coords": [55.7010, 12.5760], "icon": "🍽️", "cat": "food"},
-                    {"time": "12:30", "title": "Nr. 30 (Nansensgade)", "desc": "Highly rated seasonal modern plates and organic wines.", "coords": [55.6840, 12.5650], "icon": "🍽️", "cat": "food"},
-                    {"time": "17:30", "title": "Hija de Sánchez Tacos", "desc": "Authentic street tacos and fresh ceviche basted with hot salsas.", "coords": [55.6730, 12.5530], "icon": "🍽️", "cat": "food"}
-                ]
-            }
-        };
-
-        let map;
-        let dayLayers = {};
-        const activeLayers = new Set();
-
-        const categoryStyles = {
-            "playground": "bg-emerald-950 border-emerald-500 text-emerald-300",
-            "food": "bg-orange-950 border-orange-500 text-orange-300",
-            "shopping": "bg-indigo-950 border-indigo-500 text-indigo-300",
-            "sight": "bg-blue-950 border-blue-500 text-blue-300",
-            "lodging": "bg-amber-950 border-amber-500 text-amber-300",
-            "transit": "bg-slate-900 border-slate-600 text-slate-300"
-        };
-
-        const cityCoords = {
-            "London": [51.5074, -0.1278],
-            "Liverpool": [53.4080, -2.9780],
-            "Rovaniemi": [66.5039, 25.7294],
-            "Stockholm": [59.3293, 18.0686],
-            "Bergen": [60.3913, 5.3221],
-            "Copenhagen": [55.6761, 12.5683]
-        };
-
-        window.onload = function() {
-            // Instantiate Map using CartoDB Dark Matter tile layer
-            map = L.map('map', {
-                center: [55.0, 5.0],
-                zoom: 4,
-                zoomControl: false
-            });
-
-            L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
-                subdomains: 'abcd',
-                maxZoom: 20
-            }).addTo(map);
-
-            L.control.zoom({ position: 'bottomleft' }).addTo(map);
-
-            buildAccordion();
-            loadAllLayers();
-            
-            // Enable London Day 1 as default
-            toggleDayLayer('dec24');
-
-            if ('serviceWorker' in navigator) {
-                const swCode = `
-                    self.addEventListener('install', e => self.skipWaiting());
-                    self.addEventListener('activate', e => e.waitUntil(clients.claim()));
-                    self.addEventListener('fetch', e => e.respondWith(fetch(e.request).catch(() => new Response('Offline Mode'))));
-                `;
-                const blob = new Blob([swCode], { type: 'application/javascript' });
-                navigator.serviceWorker.register(URL.createObjectURL(blob)).catch(err => console.log('SW setup skipped'));
-            }
-        };
-
-        function buildAccordion() {
-            const container = document.getElementById('timeline-accordion');
-            container.innerHTML = "";
-
-            Object.entries(itineraryData).forEach(([key, day]) => {
-                const dayCard = document.createElement('div');
-                dayCard.className = "bg-gray-800/40 border border-gray-800 rounded-xl overflow-hidden shadow-md hover:border-gray-700 transition-all";
-                
-                dayCard.innerHTML = `
-                    <div class="p-3 bg-gray-800/80 flex items-center justify-between cursor-pointer" onclick="toggleAccordionContent('${key}')">
-                        <div class="flex items-center gap-2">
-                            <input type="checkbox" id="chk-${key}" class="rounded border-gray-700 text-indigo-600 focus:ring-indigo-500 bg-gray-900 h-4 w-4" onchange="event.stopPropagation(); handleCheckboxChange('${key}', this.checked)" onclick="event.stopPropagation();">
-                            <label for="chk-${key}" onclick="event.stopPropagation();" class="text-xs font-bold text-white cursor-pointer select-none">${day.title}</label>
-                        </div>
-                        <span class="text-[10px] text-gray-400 font-semibold uppercase tracking-wider">${day.city}</span>
-                    </div>
-                    <div id="body-${key}" class="hidden p-3 border-t border-gray-800/50 space-y-2.5 bg-gray-900/30">
-                        <div class="flex gap-2">
-                            <button onclick="zoomToDay('${key}')" class="text-[10px] w-full py-1 bg-indigo-950/50 hover:bg-indigo-900/50 border border-indigo-800 text-indigo-300 rounded font-semibold transition-all">Fit Bounds</button>
-                        </div>
-                        <div class="space-y-2 divide-y divide-gray-800/40" id="list-${key}"></div>
-                    </div>
-                `;
-
-                container.appendChild(dayCard);
-
-                const listContainer = document.getElementById(`list-${key}`);
-                day.items.forEach((item, idx) => {
-                    const itemEl = document.createElement('div');
-                    itemEl.className = "pt-2 first:pt-0 flex gap-2.5 items-start hover:bg-gray-800/30 p-1.5 rounded transition-all cursor-pointer";
-                    itemEl.onclick = () => focusMarker(key, idx);
-
-                    itemEl.innerHTML = `
-                        <span class="text-[10px] bg-gray-800 px-1.5 py-0.5 rounded font-mono text-gray-300 tracking-tight">${item.time}</span>
-                        <div class="flex-1">
-                            <h4 class="text-xs font-bold text-gray-200 flex items-center gap-1">
-                                <span>${item.icon}</span>
-                                ${item.title}
-                            </h4>
-                            <p class="text-[11px] text-gray-400 leading-normal mt-0.5">${item.desc}</p>
-                        </div>
-                    `;
-                    listContainer.appendChild(itemEl);
-                });
-            });
-        }
-
-        function toggleAccordionContent(key) {
-            const body = document.getElementById(`body-${key}`);
-            const isHidden = body.classList.contains('hidden');
-            if (isHidden) {
-                body.classList.remove('hidden');
-            } else {
-                body.classList.add('hidden');
-            }
-        }
-
-        function loadAllLayers() {
-            Object.entries(itineraryData).forEach(([key, day]) => {
-                const markers = [];
-                const latlngs = [];
-
-                day.items.forEach((item, idx) => {
-                    latlngs.push(item.coords);
-
-                    const styleClass = categoryStyles[item.cat] || "bg-slate-900 text-slate-300";
-                    const customIcon = L.divIcon({
-                        className: 'custom-marker',
-                        html: `<div class="flex items-center justify-center w-8 h-8 rounded-full border-2 shadow-lg font-semibold text-sm ${styleClass}">${item.icon}</div>`,
-                        iconSize: [32, 32],
-                        iconAnchor: [16, 16]
-                    });
-
-                    const popupHTML = `
-                        <div class="text-xs space-y-2">
-                            <div class="flex items-center gap-1.5 border-b border-gray-800 pb-1.5">
-                                <span class="text-base">${item.icon}</span>
-                                <div>
-                                    <h4 class="font-bold text-white text-sm tracking-tight leading-none">${item.title}</h4>
-                                    <span class="text-[9px] text-indigo-400 font-mono">${day.title} • ${item.time}</span>
-                                </div>
-                            </div>
-                            <p class="text-gray-300 text-[11px] leading-relaxed">${item.desc}</p>
-                        </div>
-                    `;
-
-                    const marker = L.marker(item.coords, { icon: customIcon })
-                        .bindPopup(popupHTML);
-                    
-                    markers.push(marker);
-                });
-
-                const routePolyline = L.polyline(latlngs, {
-                    color: day.color,
-                    weight: 3,
-                    opacity: 0.6,
-                    dashArray: '6, 8'
-                });
-
-                dayLayers[key] = L.layerGroup([...markers, routePolyline]);
-            });
-        }
-
-        function handleCheckboxChange(key, isChecked) {
-            if (isChecked) {
-                dayLayers[key].addTo(map);
-                activeLayers.add(key);
-                document.getElementById(`body-${key}`).classList.remove('hidden');
-            } else {
-                map.removeLayer(dayLayers[key]);
-                activeLayers.delete(key);
-            }
-        }
-
-        function toggleDayLayer(key) {
-            const chk = document.getElementById(`chk-${key}`);
-            if (chk) {
-                chk.checked = true;
-                handleCheckboxChange(key, true);
-                zoomToDay(key);
-            }
-        }
-
-        function toggleAllLayers(enable) {
-            Object.keys(itineraryData).forEach(key => {
-                const chk = document.getElementById(`chk-${key}`);
-                if (chk) {
-                    chk.checked = enable;
-                    handleCheckboxChange(key, enable);
-                }
-            });
-            if (enable) {
-                map.setView([58.0, 10.0], 4);
-            }
-        }
-
-        function zoomToDay(key) {
-            const day = itineraryData[key];
-            const chk = document.getElementById(`chk-${key}`);
-            if (chk && !chk.checked) {
-                chk.checked = true;
-                handleCheckboxChange(key, true);
-            }
-            map.setView(day.center, day.zoom);
-        }
-
-        function zoomToCity(cityName) {
-            const coords = cityCoords[cityName];
-            if (coords) {
-                map.setView(coords, 13);
-            }
-        }
-
-        function focusMarker(key, idx) {
-            const chk = document.getElementById(`chk-${key}`);
-            if (chk && !chk.checked) {
-                chk.checked = true;
-                handleCheckboxChange(key, true);
-            }
-            const item = itineraryData[key].items[idx];
-            map.setView(item.coords, 16);
-            
-            dayLayers[key].eachLayer(layer => {
-                if (layer instanceof L.Marker && layer.getLatLng().lat === item.coords[0] && layer.getLatLng().lng === item.coords[1]) {
-                    layer.openPopup();
-                }
-            });
-        }
-    </script>
-</body>
-</html>
+  );
+}
